@@ -1,0 +1,12 @@
+# Downloaded offer documents (108 MB) - re-download from the SEBI URLs in data/manifest.csv
+data/raw/
+# Parser output (26 MB) - regenerate with: python src/parse_drhp.py
+data/processed/
+
+# Office lock files
+~$*
+
+# Python
+__pycache__/
+*.pyc
+.venv/

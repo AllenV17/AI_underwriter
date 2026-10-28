@@ -1,0 +1,11 @@
+company,file,doc_type,doc_date,sector,pages,source_url,price_band,issue_price,listing_date,listing_open,listing_close,subscription_x
+Tata Technologies,raw/drhp/TataTechnologies_DRHP.pdf,DRHP,2023-03-09,IT services / engineering,480,https://www.sebi.gov.in/sebi_data/attachdocs/mar-2023/1678708849713_63.pdf,,,,,,
+Mankind Pharma,raw/drhp/MankindPharma_DRHP.pdf,DRHP,2022-09-15,Pharma,548,https://www.sebi.gov.in/sebi_data/attachdocs/sep-2022/1663321983909.pdf,,,,,,
+JSW Infrastructure,raw/drhp/JSWInfrastructure_DRHP.pdf,DRHP,2023-05-09,Infrastructure / ports,525,https://www.sebi.gov.in/sebi_data/attachdocs/may-2023/1683716794791.pdf,,,,,,
+Bajaj Housing Finance,raw/drhp/BajajHousingFinance_DRHP.pdf,DRHP,2024-06-07,Housing finance (NBFC),474,https://www.sebi.gov.in/sebi_data/attachdocs/jun-2024/1718346025028.pdf,,,,,,
+IREDA,raw/drhp/IREDA_DRHP.pdf,DRHP,2023-09-07,PSU financier (renewables),664,https://www.sebi.gov.in/sebi_data/attachdocs/sep-2023/1694520772195.pdf,,,,,,
+Hyundai Motor India,raw/drhp/HyundaiMotorIndia_DRHP.pdf,DRHP,2024-06-14,Automobiles,436,https://www.sebi.gov.in/sebi_data/attachdocs/jun-2024/1718692993829.PDF,,,,,,
+Honasa Consumer,raw/drhp/HonasaConsumer_DRHP.pdf,DRHP,2022-12-28,Consumer / D2C,401,https://www.sebi.gov.in/sebi_data/attachdocs/dec-2022/1672380661526.pdf,,,,,,
+DOMS Industries,raw/drhp/DOMSIndustries_DRHP.pdf,DRHP,2023-08-22,Manufacturing / stationery,475,https://www.sebi.gov.in/sebi_data/attachdocs/aug-2023/1692782329929.pdf,,,,,,
+Premier Energies,raw/drhp/PremierEnergies_RHP.pdf,RHP,2024-08-20,Solar manufacturing,558,https://www.sebi.gov.in/sebi_data/attachdocs/aug-2024/1724645965864.pdf,,,,,,
+Unicommerce eSolutions,raw/drhp/Unicommerce_DRHP.pdf,DRHP,2024-01-05,SaaS / e-commerce tech,361,https://www.sebi.gov.in/sebi_data/attachdocs/jan-2024/1704710581631.pdf,,,,,,
