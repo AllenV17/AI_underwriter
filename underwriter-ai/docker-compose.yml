@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: underwriter
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:v1.13.4
+    volumes:
+      - qdrant:/qdrant/storage
+    ports:
+      - "6333:6333"
+
+  backend:
+    build: .
+    env_file:
+      - path: .env
+        required: false   # without it the app runs, but the LLM is "not configured"
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/underwriter
+      QDRANT_URL: http://qdrant:6333
+      DATA_DIR: /app/data
+    volumes:
+      - appdata:/app/data
+      - models:/models   # caches BGE-M3 and the reranker between restarts
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8000/api/health"]
+      interval: 15s
+      retries: 20
+
+  frontend:
+    build: .
+    command: ["streamlit", "run", "/app/frontend/streamlit_app.py", "--server.port", "8501", "--server.address", "0.0.0.0"]
+    working_dir: /app/frontend
+    environment:
+      API_URL: http://backend:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  qdrant:
+  appdata:
+  models:
