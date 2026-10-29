@@ -247,6 +247,18 @@ elif page == "Valuation":
         st.caption("Enter listed peers and their multiples from a reliable, dated source (e.g. the DRHP's Basis for Offer Price "
                    "peer table, or exchange data). Peer figures are never generated automatically.")
         default = pd.DataFrame([{"name": "", "pe": None, "ev_ebitda": None, "ps": None, "source": ""}] * 3)
+        if st.button("Load peer table from the DRHP"):
+            try:
+                found = get(f"/api/documents/{doc_id}/peers")
+                rows = [{"name": p["name"], "pe": p.get("pe"), "ev_ebitda": None, "ps": None, "source": p["source"]}
+                        for p in found.get("suggested", []) if p.get("pe")]
+                if rows:
+                    st.session_state["peers_df"] = pd.DataFrame(rows)
+                    st.warning("Loaded from the DRHP. Company names can be mis-read when they wrap over lines: check each row against the cited page before running.")
+                else:
+                    st.info(found.get("note") or "No peer P/E figures were found in the DRHP.")
+            except APIError as e:
+                st.error(str(e))
         peers_df = st.data_editor(st.session_state.get("peers_df", default), num_rows="dynamic", use_container_width=True,
                                   column_config={"pe": st.column_config.NumberColumn("P/E (x)"),
                                                  "ev_ebitda": st.column_config.NumberColumn("EV/EBITDA (x)"),

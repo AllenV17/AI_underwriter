@@ -49,7 +49,7 @@ LINE_ITEMS: list[LineItem] = [
     LineItem("tax_components", "pl", (r"^(current tax|income tax|deferred tax|tax (adjustments?|relating) (of|to) (earlier|prior) (years?|periods?))",),
              exclude=(r"relating to", r"other comprehensive", r"expense"), sum=True,
              label="Tax components (used when no total tax line)"),
-    LineItem("eps_basic", "pl", (r"^basic( earnings per share)?( \(in ₹\)| \(₹\))?", r"^- basic", r"basic eps"),
+    LineItem("eps_basic", "pl", (r"^basic( earnings per share)?( \(in ₹\)| \(₹\))?", r"^- basic", r"basic eps", r"^equity shares,? nominal value"),
              exclude=(r"weighted",), label="Basic EPS"),
     LineItem("eps_diluted", "pl", (r"^diluted( earnings per share)?", r"^- diluted", r"diluted eps"),
              exclude=(r"weighted",), label="Diluted EPS"),
@@ -75,7 +75,7 @@ LINE_ITEMS: list[LineItem] = [
     # --- Cash flow ---
     LineItem("operating_cash_flow", "cf",
              (r"^net cash (flows? )?(generated from|from|\(used in\)|used in|generated/\(used in\)|\(used in\)/generated from|from/\(used in\)).*operating activities",
-              r"net cash.*operating activities"),
+              r"net cash.*operating activities", r"^net cash (flows? )?(generated|used)[a-z /()]* (from|in) operations$"),
              label="Net cash from operating activities"),
     LineItem("capex", "cf",
              (r"^(purchases?|acquisitions?|payments? for (the )?(purchases?|acquisitions?)) of (property, plant and equipment|property plant and equipment|ppe|fixed assets|tangible)",

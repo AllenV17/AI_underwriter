@@ -20,6 +20,11 @@ CASES = [
     ("HyundaiMotorIndia_DRHP.pdf", "Dec 2023", "revenue_from_operations", 521579.11, "million", 238),
     ("MankindPharma_DRHP.pdf", "FY2022", "profit_before_tax", 19745.99, "million", 310),
     ("IREDA_DRHP.pdf", "FY2023", "total_equity", 59351.69, "million", 357),
+    # IREDA's cash flow prints subtotals indented from the line items and labels OCF "Net Cash Generated from Operations".
+    ("IREDA_DRHP.pdf", "FY2023", "operating_cash_flow", -123430.78, "million", 359),
+    ("IREDA_DRHP.pdf", "Jun 2023", "operating_cash_flow", 4097.68, "million", 359),
+    # Honasa's page title sits above a multi-line period header; EPS is labelled by face value only.
+    ("HonasaConsumer_DRHP.pdf", "FY2021", "revenue_from_operations", 4599.90, "million", 73),
 ]
 
 
@@ -48,3 +53,34 @@ def test_pilot_value(name, period, field, value, unit, page):
 def test_pilot_checks_pass(name):
     data = _load(name)
     assert data.checks and all(c.passed for c in data.checks if c.passed is not None)
+
+
+def test_honasa_periods_and_eps():
+    data = _load("HonasaConsumer_DRHP.pdf")
+    assert data.periods == ["Sep 2022", "FY2022", "FY2021", "FY2020"]
+    assert data.get("eps_basic", "FY2022").value_original == pytest.approx(0.53)
+
+
+def _peers(name: str):
+    import pymupdf
+
+    from app.financial_engine.peer_extractor import extract_peers
+
+    path = PILOT / name
+    if not path.exists():
+        pytest.skip(f"pilot DRHP {name} not available")
+    texts = [p.get_text() for p in pymupdf.open(path)]
+    chapters, *_ = map_sections(texts)
+    pages = [n for c in chapters if c.key == "basis_for_offer_price" for n in range(c.pdf_start, c.pdf_end + 1)]
+    return extract_peers(str(path), pages)
+
+
+def test_peer_pe_mankind():
+    pes = sorted(p.values["pe"] for p in _peers("MankindPharma_DRHP.pdf").peers if not p.is_subject)
+    assert {24.99, 48.46, 14.27, 58.48, 37.01, 34.05} <= set(pes)
+
+
+def test_peer_pe_doms_and_none_cases():
+    assert 25.9 in [p.values["pe"] for p in _peers("DOMSIndustries_DRHP.pdf").peers]
+    t = _peers("HonasaConsumer_DRHP.pdf")
+    assert not t.peers and "no comparable" in t.note

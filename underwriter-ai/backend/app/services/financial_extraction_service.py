@@ -7,10 +7,11 @@ from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from app.financial_engine.extractor import FinancialData, map_fields
+from app.financial_engine.peer_extractor import PeerTable, extract_peers
 from app.financial_engine.statement_parser import StatementTable, locate_and_parse
 from app.models.db import FinancialValueRow
 from app.schemas.document_ir import DocumentIR
-from app.utils.storage import financials_path, load_json, save_json
+from app.utils.storage import financials_path, load_json, peers_path, save_json
 
 log = logging.getLogger(__name__)
 
@@ -60,3 +61,15 @@ def load_financials(document_id: str) -> FinancialData | None:
         values=[FinancialValue(**v) for v in raw["values"]], checks=[ValidationCheck(**c) for c in raw["checks"]],
         warnings=raw["warnings"], statement_pages=raw.get("statement_pages", {}),
     )
+
+
+def extract_and_save_peers(ir: DocumentIR, pdf_path: Path) -> PeerTable:
+    """Peer table from the Basis for Offer Price chapter, saved for the valuation page."""
+    pages = [n for c in ir.chapters if c.key == "basis_for_offer_price" for n in range(c.pdf_start, c.pdf_end + 1)]
+    table = extract_peers(str(pdf_path), pages, ir.company_name) if pages else PeerTable(note="Basis for Offer Price chapter not found.")
+    save_json(peers_path(ir.document_id), {**table.to_dict(), "suggested": table.as_peer_companies()})
+    return table
+
+
+def load_peers(document_id: str) -> dict | None:
+    return load_json(peers_path(document_id))

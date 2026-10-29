@@ -1,0 +1,29 @@
+file,period,field,value,unit,page,read_from
+DOMSIndustries_DRHP.pdf,FY2023,revenue_from_operations,12118.90,million,278,Statement of profit and loss
+DOMSIndustries_DRHP.pdf,FY2022,revenue_from_operations,6836.01,million,278,Statement of profit and loss
+DOMSIndustries_DRHP.pdf,FY2023,profit_before_tax,1387.63,million,278,Statement of profit and loss
+DOMSIndustries_DRHP.pdf,FY2023,profit_after_tax,1028.71,million,278,Statement of profit and loss
+DOMSIndustries_DRHP.pdf,FY2022,profit_after_tax,171.40,million,278,Statement of profit and loss
+DOMSIndustries_DRHP.pdf,FY2021,profit_after_tax,-60.26,million,278,Statement of profit and loss
+DOMSIndustries_DRHP.pdf,FY2023,total_assets,6397.83,million,277,Statement of assets and liabilities
+DOMSIndustries_DRHP.pdf,FY2023,total_equity,3553.45,million,277,Statement of assets and liabilities
+DOMSIndustries_DRHP.pdf,FY2022,total_equity,2580.94,million,277,Statement of assets and liabilities
+DOMSIndustries_DRHP.pdf,FY2023,operating_cash_flow,1732.63,million,280,Statement of cash flows
+DOMSIndustries_DRHP.pdf,FY2022,operating_cash_flow,509.39,million,280,Statement of cash flows
+HonasaConsumer_DRHP.pdf,Sep 2022,revenue_from_operations,7227.35,million,73,Summary statement of profit and loss
+HonasaConsumer_DRHP.pdf,FY2022,revenue_from_operations,9434.65,million,73,Summary statement of profit and loss
+HonasaConsumer_DRHP.pdf,FY2021,revenue_from_operations,4599.90,million,73,Summary statement of profit and loss
+HonasaConsumer_DRHP.pdf,FY2022,profit_before_tax,224.39,million,73,Summary statement of profit and loss
+HonasaConsumer_DRHP.pdf,FY2022,profit_after_tax,144.43,million,73,Summary statement of profit and loss
+HonasaConsumer_DRHP.pdf,FY2021,profit_after_tax,-13322.15,million,73,Summary statement of profit and loss
+HonasaConsumer_DRHP.pdf,FY2022,total_assets,10350.12,million,72,Summary statement of assets and liabilities
+HonasaConsumer_DRHP.pdf,FY2022,total_equity,7056.24,million,72,Summary statement of assets and liabilities
+HonasaConsumer_DRHP.pdf,FY2022,operating_cash_flow,445.88,million,74,Summary statement of cash flows
+TataTechnologies_DRHP.pdf,Dec 2022,revenue_from_operations,30117.94,million,272,Statement of profit and loss
+TataTechnologies_DRHP.pdf,Dec 2021,revenue_from_operations,26073.03,million,272,Statement of profit and loss
+TataTechnologies_DRHP.pdf,Dec 2022,profit_after_tax,4074.67,million,272,Statement of profit and loss
+TataTechnologies_DRHP.pdf,Dec 2021,profit_after_tax,3313.62,million,272,Statement of profit and loss
+TataTechnologies_DRHP.pdf,FY2022,profit_after_tax,4369.91,million,272,Statement of profit and loss
+TataTechnologies_DRHP.pdf,Dec 2022,total_assets,46406.83,million,271,Statement of assets and liabilities
+TataTechnologies_DRHP.pdf,Dec 2022,total_equity,27528.25,million,271,Statement of assets and liabilities
+TataTechnologies_DRHP.pdf,Dec 2022,operating_cash_flow,2702.68,million,273,Statement of cash flows

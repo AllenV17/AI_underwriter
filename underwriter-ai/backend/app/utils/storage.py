@@ -30,6 +30,10 @@ def financials_path(document_id: str) -> Path:
     return processed_dir(document_id) / "financials.json"
 
 
+def peers_path(document_id: str) -> Path:
+    return processed_dir(document_id) / "peers.json"
+
+
 def save_ir(ir: DocumentIR) -> None:
     ir_path(ir.document_id).write_text(ir.model_dump_json(), encoding="utf-8")
 
