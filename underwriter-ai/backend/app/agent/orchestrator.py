@@ -11,6 +11,7 @@ evidence and writing, never for arithmetic: computed values are passed in verbat
 """
 
 import logging
+import re
 from dataclasses import dataclass, field
 
 from app.agent import tools as T
@@ -21,23 +22,26 @@ from app.services.retrieval_service import RetrievalService
 
 log = logging.getLogger(__name__)
 
-# intent -> (keywords, tool plan). Order = priority when several match.
+# intent -> (keywords, tool plan). A keyword matches at a word start (so "concentrat" covers "concentration");
+# multi-word phrases count double. The highest score wins and ties go to the earlier entry.
 INTENTS: list[tuple[str, tuple[str, ...], list[tuple[str, dict]]]] = [
-    ("valuation", ("valuation", "fair value", "intrinsic", "worth", "price range", "dcf", "multiple", "overvalued", "undervalued", "peer"),
+    ("valuation", ("valuation", "fair value", "intrinsic value", "price range", "dcf", "multiples", "overvalued", "undervalued", "peer", "how much is it worth", "is it worth"),
      [("get_financial_data", {}), ("calculate_ratios", {}), ("find_comparable_companies", {}),
       ("calculate_comparable_valuation", {}), ("calculate_dcf", {}), ("predict_listing_price", {})]),
     ("listing", ("listing price", "listing gain", "list at", "grey market", "gmp", "listing day"),
      [("predict_listing_price", {}), ("retrieve_evidence", {"topic": "offer price basis price band", "chapter_keys": ["basis_for_offer_price", "the_offer"]})]),
-    ("risk", ("risk", "litigation", "legal", "regulatory", "concentrat", "dependen", "top customers", "key customers", "contingent", "related party"),
+    ("approvals", ("approval", "licen", "permit", "registration", "certificate"),
+     [("retrieve_evidence", {"topic": "{q}", "chapter_keys": ["approvals", "regulatory_disclosures", "regulations", "litigation"]})]),
+    ("risk", ("risk", "litigation", "legal", "regulatory", "concentrat", "dependen", "top customers", "key customers risk", "contingent", "related party", "related-party"),
      [("analyze_risk_factors", {"focus": "{q}"})]),
-    ("management", ("promoter", "management", "director", "board", "ceo", "kmp", "shareholding"),
+    ("management", ("promoter", "management", "director", "board", "ceo", "kmp", "shareholding", "key managerial"),
      [("retrieve_evidence", {"topic": "{q}", "chapter_keys": ["promoters", "management", "capital_structure", "group_companies"]})]),
-    ("business", ("business", "what does", "products", "customers", "segments", "industry", "competit", "market share", "strategy", "geograph"),
+    ("business", ("business", "what does the company do", "products", "customers", "segments", "industry", "competit", "market share", "strategy", "geograph", "employee", "manufactur", "plants"),
      [("retrieve_evidence", {"topic": "{q}", "chapter_keys": ["our_business", "industry_overview", "offer_document_summary"]})]),
-    ("offer", ("objects", "use of proceeds", "issue size", "ofs", "offer for sale", "fresh issue", "price band", "lead manager"),
+    ("offer", ("objects", "use of proceeds", "net proceeds", "proceeds", "issue size", "offer size", "ofs", "offer for sale", "fresh issue", "price band", "lead manager", "book running", "registrar", "lot size"),
      [("retrieve_evidence", {"topic": "{q}", "chapter_keys": ["objects_of_offer", "the_offer", "capital_structure", "general_information", "basis_for_offer_price"]})]),
     ("financial_health", ("financial health", "financial", "ratio", "profit", "revenue", "margin", "debt", "leverage", "cash flow",
-                          "ebitda", "balance sheet", "liquidity", "roe", "earnings", "growth"),
+                          "ebitda", "balance sheet", "liquidity", "roe", "earnings", "growth", "net worth", "networth"),
      [("get_financial_data", {}), ("calculate_ratios", {}),
       ("retrieve_evidence", {"topic": "{q}", "chapter_keys": ["mdna", "restated_financials", "financial_summary"]})]),
 ]
@@ -45,10 +49,12 @@ INTENTS: list[tuple[str, tuple[str, ...], list[tuple[str, dict]]]] = [
 
 def classify(question: str) -> str:
     q = question.lower()
+    best, best_score = "general", 0
     for name, kws, _ in INTENTS:
-        if any(k in q for k in kws):
-            return name
-    return "general"
+        score = sum((2 if " " in k else 1) for k in kws if re.search(r"\b" + re.escape(k), q))
+        if score > best_score:  # strict: ties keep the earlier intent
+            best, best_score = name, score
+    return best
 
 
 def plan_for(intent: str, question: str) -> list[tuple[str, dict]]:

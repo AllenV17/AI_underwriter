@@ -53,6 +53,8 @@ class TargetFinancials(BaseModel):
     pat: float | None = None
     net_debt: float | None = None
     shares_outstanding: float | None = Field(default=None, gt=0, description="Post-issue share count")
+    pre_issue_shares: float | None = Field(default=None, gt=0, description="Share count before the issue (alternative to post-issue count + fresh issue)")
+    fresh_issue_inr: float | None = Field(default=None, ge=0, description="Fresh-issue proceeds, absolute INR (0 for a pure offer for sale)")
     sources: dict[str, str] = Field(default_factory=dict)
 
 
@@ -95,12 +97,31 @@ _BOUNDS = {"P/E": (0, 200), "EV/EBITDA": (0, 100), "P/S": (0, 50)}
 
 def value_by_comparables(target: TargetFinancials, peers: list[PeerCompany]) -> ComparableValuation:
     out = ComparableValuation(target=target.model_dump())
+
+    def per_share(equity: float) -> float | None:
+        """Multiples value the existing business (pre-money). New shares dilute that value only if the
+        fresh-issue money is added back, so either divide by the pre-issue count or add proceeds and use the post-issue count."""
+        if target.pre_issue_shares:
+            return equity / target.pre_issue_shares
+        if target.shares_outstanding:
+            return (equity + (target.fresh_issue_inr or 0.0)) / target.shares_outstanding
+        return None
+
     out.assumptions = [
         f"Target financials: {target.period} (from the DRHP's restated statements unless overridden).",
         "Peer multiples summarised by median; low/high are the minimum/maximum valid peer multiples.",
         "Multiples outside sane bounds (P/E 0-200x, EV/EBITDA 0-100x, P/S 0-50x) or from loss-making peers are excluded.",
         "Trailing multiples as supplied; no adjustment for growth, size or listing discount.",
+        "Implied equity values are pre-money (the existing business, before fresh-issue proceeds).",
     ]
+    if target.pre_issue_shares:
+        out.assumptions.append("Price per share = pre-money equity / pre-issue shares.")
+    elif target.shares_outstanding and target.fresh_issue_inr is not None:
+        out.assumptions.append("Price per share = (pre-money equity + fresh-issue proceeds) / post-issue shares.")
+    elif target.shares_outstanding:
+        out.warnings.append("Only the post-issue share count was given: pre-money equity divided by post-issue shares understates the "
+                            "value per share by the dilution from new shares. Enter the pre-issue share count, or the fresh-issue "
+                            "proceeds (0 for a pure offer for sale).")
     if len(peers) < 3:
         out.warnings.append(f"Only {len(peers)} peer(s) supplied; at least 3-5 comparable listed companies are recommended.")
     if not peers:
@@ -135,9 +156,9 @@ def value_by_comparables(target: TargetFinancials, peers: list[PeerCompany]) -> 
             if is_ev and target.net_debt is None:
                 r.note = "Net debt not available; EV treated as equity value (overstates equity if the company has debt)."
             r.implied_equity_low, r.implied_equity_mid, r.implied_equity_high = (m * tval + adj for m in (r.low, r.median, r.high))
-            if target.shares_outstanding:
+            if per_share(0.0) is not None:
                 r.implied_price_low, r.implied_price_mid, r.implied_price_high = (
-                    e / target.shares_outstanding for e in (r.implied_equity_low, r.implied_equity_mid, r.implied_equity_high))
+                    per_share(e) for e in (r.implied_equity_low, r.implied_equity_mid, r.implied_equity_high))
         out.results.append(r)
 
     usable = [r for r in out.results if r.implied_equity_mid is not None]
@@ -146,8 +167,8 @@ def value_by_comparables(target: TargetFinancials, peers: list[PeerCompany]) -> 
         mids = [r.implied_equity_mid for r in usable]
         highs = [r.implied_equity_high for r in usable]
         out.equity_range = (min(lows), median(mids), max(highs))
-        if target.shares_outstanding:
-            out.price_range = tuple(v / target.shares_outstanding for v in out.equity_range)  # type: ignore[assignment]
+        if per_share(0.0) is not None:
+            out.price_range = tuple(per_share(v) for v in out.equity_range)  # type: ignore[assignment]
         else:
             out.warnings.append("Share count not provided: implied price per share not computed.")
         out.assumptions.append("Overall range: lowest low and highest high across usable multiples; midpoint is the median of the multiples' midpoints.")

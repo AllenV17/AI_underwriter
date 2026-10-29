@@ -18,8 +18,8 @@ def latest_full_year(data: FinancialData) -> str | None:
     return max(fys, key=lambda p: int(p[2:])) if fys else (data.periods[0] if data.periods else None)
 
 
-def target_from_financials(data: FinancialData, period: str | None = None,
-                           shares_outstanding: float | None = None) -> TargetFinancials:
+def target_from_financials(data: FinancialData, period: str | None = None, shares_outstanding: float | None = None,
+                           pre_issue_shares: float | None = None, fresh_issue_inr: float | None = None) -> TargetFinancials:
     period = period or latest_full_year(data)
     src: dict[str, str] = {}
 
@@ -32,18 +32,21 @@ def target_from_financials(data: FinancialData, period: str | None = None,
 
     t = TargetFinancials(period=period, revenue=take("revenue_from_operations", "revenue"), ebitda=take("ebitda", "ebitda"),
                          pat=take("profit_after_tax", "pat"), net_debt=take("net_debt", "net_debt"),
-                         shares_outstanding=shares_outstanding, sources=src)
-    if shares_outstanding:
-        src["shares_outstanding"] = "user input"
+                         shares_outstanding=shares_outstanding, pre_issue_shares=pre_issue_shares,
+                         fresh_issue_inr=fresh_issue_inr, sources=src)
+    for k, v in (("shares_outstanding", shares_outstanding), ("pre_issue_shares", pre_issue_shares), ("fresh_issue_inr", fresh_issue_inr)):
+        if v is not None:
+            src[k] = "user input"
     return t
 
 
 def comparable_valuation(document_id: str, peers: list[PeerCompany], period: str | None = None,
-                         shares_outstanding: float | None = None, overrides: dict | None = None) -> dict:
+                         shares_outstanding: float | None = None, overrides: dict | None = None,
+                         pre_issue_shares: float | None = None, fresh_issue_inr: float | None = None) -> dict:
     data = load_financials(document_id)
     if data is None:
         raise LookupError("No extracted financials for this document.")
-    target = target_from_financials(data, period, shares_outstanding)
+    target = target_from_financials(data, period, shares_outstanding, pre_issue_shares, fresh_issue_inr)
     for k, v in (overrides or {}).items():
         if v is not None and hasattr(target, k):
             setattr(target, k, v)

@@ -90,3 +90,25 @@ def test_dcf_matches_hand_calculation():
 def test_dcf_rejects_growth_above_wacc():
     with pytest.raises(ValueError):
         DCFAssumptions(base_revenue=1, revenue_growth=[0.1], ebitda_margin=0.2, wacc=0.08, terminal_growth=0.09)
+
+
+def test_comparables_pre_money_vs_post_money():
+    peers = [PeerCompany(name=n, pe=20) for n in "ABC"]
+    base = dict(period="FY2025", pat=1000e6)  # pre-money equity = 20 x 1000m = 20,000m
+    # Pre-issue 100m shares -> Rs. 200 per share, regardless of the new shares.
+    r = value_by_comparables(TargetFinancials(**base, pre_issue_shares=100e6), peers)
+    assert r.price_range[1] == pytest.approx(200.0)
+    # Post-issue 120m shares with Rs. 4,000m fresh issue: (20,000 + 4,000) / 120 = 200, the same price.
+    r = value_by_comparables(TargetFinancials(**base, shares_outstanding=120e6, fresh_issue_inr=4000e6), peers)
+    assert r.price_range[1] == pytest.approx(200.0) and not r.warnings
+    # Post-issue count alone understates the price (20,000 / 120 = 166.7) and says so.
+    r = value_by_comparables(TargetFinancials(**base, shares_outstanding=120e6), peers)
+    assert r.price_range[1] == pytest.approx(20000 / 120) and any("pre-issue" in w for w in r.warnings)
+
+
+def test_dcf_adds_fresh_issue_proceeds():
+    kw = dict(base_revenue=1000.0, revenue_growth=[0.10], ebitda_margin=0.20, tax_rate=0.25, da_pct_revenue=0.05,
+              capex_pct_revenue=0.05, wacc=0.12, terminal_growth=0.04, net_debt=100.0, shares_outstanding=10.0)
+    without, withfresh = run_dcf(DCFAssumptions(**kw)), run_dcf(DCFAssumptions(**kw, fresh_issue_inr=50.0))
+    assert withfresh.equity_value == pytest.approx(without.equity_value + 50.0)
+    assert any("Fresh-issue" in w for w in without.warnings) and not any("Fresh-issue" in w for w in withfresh.warnings)

@@ -98,16 +98,30 @@ def screen_output(text: str) -> ScreenResult:
     return ScreenResult(text=f"{text.rstrip()}\n\n{COMPLIANCE_NOTE}", flagged=True, matches=matches)
 
 
+_ACT = r"(?:buy|sell|subscribe|apply|invest|bid|participate)"
 _ADVICE_QUESTION = re.compile(
-    r"\b(should i|shall i|is it (?:a )?good (?:time )?to|worth (?:buying|investing|subscribing|applying))\b"
-    r"|\b(buy|sell|subscribe|apply|invest)\b.*\?$",
+    rf"\b(?:should|shall|can|could|may|must) (?:i|we) {_ACT}\b"
+    rf"|\b(?:would|will) you (?:buy|recommend|subscribe|invest|apply|advise)\b"
+    rf"|\b(?:do|would) you (?:recommend|advise|suggest)\b"
+    r"|\bis it (?:a )?(?:good|bad|wise|safe|right) (?:time |idea |bet )?to\b"
+    r"|\bis (?:this|the|it) (?:ipo |issue |stock |company )?(?:a )?(?:good|bad|safe|worth) (?:ipo|buy|investment|bet|to (?:buy|invest|subscribe|apply))\b"
+    r"|\bworth (?:buying|investing|subscribing|applying|bidding)\b"
+    rf"|\b{_ACT} (?:for |in |to )?(?:this|the|that) (?:ipo|issue|stock|shares?|offer)\b"
+    r"|\bshould i\b|\bwhich (?:ipo|stock)s? (?:should|to) (?:i )?(?:buy|pick|choose)\b",
     re.IGNORECASE,
 )
 
 
 def is_advice_request(question: str) -> bool:
-    """True when the user asks for a personalised buy/sell/subscribe decision."""
-    return bool(_ADVICE_QUESTION.search(question.strip()))
+    """True when the user asks for a personalised buy/sell/subscribe decision.
+
+    Process questions ("Where can I apply?", "How do I bid?") ask how the offer works, not
+    whether to take part, so they are not treated as advice requests.
+    """
+    q = question.strip()
+    if re.match(r"(where|how|when)\b", q, re.I) and not re.search(r"\bshould (i|we)\b", q, re.I):
+        return False
+    return bool(_ADVICE_QUESTION.search(q))
 
 
 ADVICE_REFUSAL_PREFIX = (

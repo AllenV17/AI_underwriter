@@ -149,7 +149,8 @@ def peers(document_id: str, session: Session = Depends(get_session)) -> dict:
 def valuation_comparable(document_id: str, req: ComparableRequest, session: Session = Depends(get_session)) -> dict:
     _doc(session, document_id, ready=True)
     try:
-        return comparable_valuation(document_id, req.peers, req.period, req.shares_outstanding, req.overrides)
+        return comparable_valuation(document_id, req.peers, req.period, req.shares_outstanding, req.overrides,
+                                    req.pre_issue_shares, req.fresh_issue_inr)
     except LookupError as e:
         raise HTTPException(404, str(e)) from e
 
@@ -174,6 +175,7 @@ def report(document_id: str, req: ReportRequest, session: Session = Depends(get_
     _doc(session, document_id, ready=True)
     content = ReportService(document_id).build(
         peers=req.peers, shares=req.shares_outstanding, issue_price=req.issue_price,
+        pre_issue_shares=req.pre_issue_shares, fresh_issue_inr=req.fresh_issue_inr,
         dcf_assumptions=req.dcf_assumptions.model_dump() if req.dcf_assumptions else None)
     pdf = render_pdf(content)
     row = Report(document_id=document_id, content=content, pdf_path=str(pdf))

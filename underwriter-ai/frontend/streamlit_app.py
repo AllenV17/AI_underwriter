@@ -270,11 +270,18 @@ elif page == "Valuation":
                                                  "source": st.column_config.TextColumn("Source and date")})
         st.session_state["peers_df"] = peers_df
         shares = st.number_input("Post-issue shares outstanding (from the DRHP capital structure)", min_value=0.0, value=0.0, step=1e6, format="%.0f")
+        c1, c2 = st.columns(2)
+        pre_shares = c1.number_input("Pre-issue shares (optional, preferred)", min_value=0.0, value=0.0, step=1e6, format="%.0f",
+                                     help="Peer multiples value the existing business. Dividing by pre-issue shares avoids understating the value per share.")
+        fresh = c2.number_input("Fresh-issue proceeds, ₹ (enter 0 for a pure offer for sale)", min_value=0.0, value=None, step=1e7, format="%.0f")
+        st.session_state["fresh_issue_inr"] = fresh
+        st.session_state["pre_issue_shares"] = pre_shares
         if st.button("Run comparable valuation", type="primary"):
             peers = [{k: (None if pd.isna(v) else v) for k, v in row.items()} for row in peers_df.to_dict("records") if row.get("name")]
             try:
                 res = post(f"/api/documents/{doc_id}/valuation/comparable",
-                           json={"peers": peers, "shares_outstanding": shares or None})
+                           json={"peers": peers, "shares_outstanding": shares or None, "pre_issue_shares": pre_shares or None,
+                                 "fresh_issue_inr": fresh})
                 st.session_state["comps"] = res
             except APIError as e:
                 st.error(str(e))
@@ -318,6 +325,7 @@ elif page == "Valuation":
                  "ebitda_margin": margin / 100, "tax_rate": tax / 100, "da_pct_revenue": da / 100, "capex_pct_revenue": capex / 100,
                  "nwc_pct_incremental_revenue": nwc / 100, "wacc": wacc / 100, "terminal_growth": tg / 100,
                  "net_debt": dflt.get("net_debt") or 0.0, "shares_outstanding": dshares or None,
+                 "fresh_issue_inr": st.session_state.get("fresh_issue_inr"),
                  "input_sources": {**dflt.get("input_sources", {}), "growth/margin/wacc/terminal": "user input"}}
             try:
                 st.session_state["dcf"] = post(f"/api/documents/{doc_id}/valuation/dcf", json={"assumptions": a})
@@ -357,7 +365,9 @@ elif page == "Final Report":
             peers = [] if peers_df is None else [{k: (None if pd.isna(v) else v) for k, v in r.items()} for r in peers_df.to_dict("records") if r.get("name")]
             body = {"peers": peers or None, "issue_price": issue_price or None,
                     "dcf_assumptions": st.session_state.get("dcf_assumptions"),
-                    "shares_outstanding": (st.session_state.get("dcf_assumptions") or {}).get("shares_outstanding")}
+                    "shares_outstanding": (st.session_state.get("dcf_assumptions") or {}).get("shares_outstanding"),
+                    "pre_issue_shares": st.session_state.get("pre_issue_shares") or None,
+                    "fresh_issue_inr": st.session_state.get("fresh_issue_inr")}
             with st.spinner("Generating the report (retrieval + LLM per section)..."):
                 try:
                     st.session_state["report"] = post(f"/api/documents/{doc_id}/report", json=body)

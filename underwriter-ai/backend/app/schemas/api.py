@@ -87,7 +87,9 @@ class RatiosResponse(BaseModel):
 class ComparableRequest(BaseModel):
     peers: list[PeerCompany] = Field(min_length=1)
     period: str | None = None
-    shares_outstanding: float | None = Field(default=None, gt=0)
+    shares_outstanding: float | None = Field(default=None, gt=0, description="Post-issue shares")
+    pre_issue_shares: float | None = Field(default=None, gt=0)
+    fresh_issue_inr: float | None = Field(default=None, ge=0, description="Fresh-issue proceeds in INR (0 for a pure OFS)")
     overrides: dict[str, float] | None = Field(default=None, description="Override target revenue/ebitda/pat/net_debt (INR)")
 
 
@@ -98,6 +100,8 @@ class DCFRequest(BaseModel):
 class ReportRequest(BaseModel):
     peers: list[PeerCompany] | None = None
     shares_outstanding: float | None = Field(default=None, gt=0)
+    pre_issue_shares: float | None = Field(default=None, gt=0)
+    fresh_issue_inr: float | None = Field(default=None, ge=0)
     issue_price: float | None = Field(default=None, gt=0)
     dcf_assumptions: DCFAssumptions | None = None
 

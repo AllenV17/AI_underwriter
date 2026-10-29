@@ -10,7 +10,7 @@ labelled as such, user assumptions are labelled as user inputs. Projection for y
     FCFF_t    = NOPAT_t + D&A_t - capex_t - change in working capital_t
     TV        = FCFF_N x (1 + g_terminal) / (WACC - g_terminal)
     EV        = sum FCFF_t / (1 + WACC)^t + TV / (1 + WACC)^N   (end-of-year discounting)
-    Equity    = EV - net debt;  price = equity / shares
+    Equity    = EV - net debt + fresh-issue proceeds;  price = equity / post-issue shares
 """
 
 from dataclasses import asdict, dataclass, field
@@ -30,7 +30,8 @@ class DCFAssumptions(BaseModel):
     wacc: float = Field(gt=0, lt=1)
     terminal_growth: float = Field(ge=-0.05, lt=0.15)
     net_debt: float = Field(default=0.0, description="Total debt - cash, absolute INR (from the DRHP)")
-    shares_outstanding: float | None = Field(default=None, gt=0)
+    shares_outstanding: float | None = Field(default=None, gt=0, description="Post-issue share count")
+    fresh_issue_inr: float | None = Field(default=None, ge=0, description="Fresh-issue proceeds, absolute INR; added to equity so it matches the post-issue share count")
     input_sources: dict[str, str] = Field(default_factory=dict, description="field -> 'DRHP p.N' or 'user input'")
 
     @model_validator(mode="after")
@@ -100,7 +101,7 @@ def _run(a: DCFAssumptions) -> tuple[list[DCFYear], float, float, float]:
 def run_dcf(a: DCFAssumptions) -> DCFResult:
     years, pv_explicit, tv, pv_tv = _run(a)
     ev = pv_explicit + pv_tv
-    equity = ev - a.net_debt
+    equity = ev - a.net_debt + (a.fresh_issue_inr or 0.0)
     res = DCFResult(
         years=years, pv_explicit=pv_explicit, terminal_value=tv, pv_terminal=pv_tv, enterprise_value=ev,
         net_debt=a.net_debt, equity_value=equity,
@@ -113,6 +114,9 @@ def run_dcf(a: DCFAssumptions) -> DCFResult:
         res.warnings.append("Final-year free cash flow is not positive, so the terminal value is not meaningful.")
     if a.shares_outstanding is None:
         res.warnings.append("Share count not provided: price per share not computed.")
+    elif a.fresh_issue_inr is None:
+        res.warnings.append("Fresh-issue proceeds not given: equity value is pre-money but is divided by the post-issue share count, "
+                            "which understates the value per share if new shares are issued. Enter the proceeds (0 for a pure offer for sale).")
     res.sensitivity_wacc_g = sensitivity_wacc_growth(a)
     res.sensitivity_growth = sensitivity_revenue_growth(a)
     return res
@@ -120,7 +124,7 @@ def run_dcf(a: DCFAssumptions) -> DCFResult:
 
 def _value(a: DCFAssumptions) -> float:
     _, pv, _, pv_tv = _run(a)
-    eq = pv + pv_tv - a.net_debt
+    eq = pv + pv_tv - a.net_debt + (a.fresh_issue_inr or 0.0)
     return eq / a.shares_outstanding if a.shares_outstanding else eq
 
 

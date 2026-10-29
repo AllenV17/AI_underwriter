@@ -75,7 +75,7 @@ class ReportService:
                     "citations": [{"ref": x.ref, "page_number": x.chunk.page_number, "section": x.chunk.section_label} for x in ev[:4]]}
 
     def build(self, peers: list | None = None, shares: float | None = None, dcf_assumptions: dict | None = None,
-              issue_price: float | None = None) -> dict:
+              issue_price: float | None = None, pre_issue_shares: float | None = None, fresh_issue_inr: float | None = None) -> dict:
         ir = load_ir(self.document_id)
         company = (ir.company_name if ir else None) or "the company"
         ctx = T.ToolContext(self.document_id, self.retrieval, self.llm, evidence=[])
@@ -84,7 +84,7 @@ class ReportService:
         risks = T.analyze_risk_factors(ctx)
         self.all_citations += [{"ref": s["ref"], "page_number": s["page_number"], "section": s["section"], "section_title": "Risk Factor Analysis"}
                                for r in risks.get("risks", []) for s in r.get("sources", [])]
-        comps = T.calculate_comparable_valuation(ctx, peers, shares) if peers else None
+        comps = T.calculate_comparable_valuation(ctx, peers, shares, pre_issue_shares, fresh_issue_inr) if peers else None
         dcf = T.calculate_dcf(ctx, dcf_assumptions) if dcf_assumptions else None
         listing = T.predict_listing_price(ctx, issue_price)
 

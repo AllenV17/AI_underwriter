@@ -147,13 +147,15 @@ def find_comparable_companies(ctx: ToolContext) -> dict:
     return out
 
 
-def calculate_comparable_valuation(ctx: ToolContext, peers: list | None = None, shares: float | None = None) -> dict:
+def calculate_comparable_valuation(ctx: ToolContext, peers: list | None = None, shares: float | None = None,
+                                   pre_issue_shares: float | None = None, fresh_issue_inr: float | None = None) -> dict:
     if not peers:
         return {"tool": "calculate_comparable_valuation", "available": False,
                 "computed": "Comparable valuation not run: no peer data has been entered (peer figures are never generated automatically)."}
     from app.services.valuation_service import comparable_valuation
 
-    res = comparable_valuation(ctx.document_id, peers, shares_outstanding=shares)
+    res = comparable_valuation(ctx.document_id, peers, shares_outstanding=shares, pre_issue_shares=pre_issue_shares,
+                               fresh_issue_inr=fresh_issue_inr)
     rng = res.get("price_range") or res.get("equity_range")
     return {"tool": "calculate_comparable_valuation", "available": True, "result": res,
             "computed": f"Comparable valuation range (low, mid, high): {rng}. {res['notice']}"}

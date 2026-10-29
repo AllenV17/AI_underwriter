@@ -104,3 +104,16 @@ def test_intent_routing():
     assert classify("Estimate a fair value for the IPO") == "valuation"
     assert classify("Who are the promoters?") == "management"
     assert classify("What are the objects of the offer?") == "offer"
+
+
+def test_intent_routing_regressions():
+    from app.agent.orchestrator import classify
+
+    for q, intent in [("What does the company apply the net proceeds to?", "offer"),
+                      ("What is the net worth of the company?", "financial_health"),
+                      ("Which regulatory approvals are pending?", "approvals"),
+                      ("How many employees does the company have?", "business"),
+                      ("What are the key customers?", "business"),
+                      ("Who sits on the board of directors?", "management"),
+                      ("Where is the registrar and what is the lot size?", "offer")]:
+        assert classify(q) == intent, q

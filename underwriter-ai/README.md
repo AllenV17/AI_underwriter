@@ -118,7 +118,7 @@ Unit and API tests run offline (fake embedder, in-memory Qdrant, mocked LLM) on 
 | 1 Foundation (API, frontend, OpenRouter, upload, parsing) | Done |
 | 2 RAG (chunking, BGE-M3, Qdrant, BM25, RRF, reranking, cited QA) | Done |
 | 3 Financial analysis (extraction, normalisation, ratios, dashboard) | Done; see limitations |
-| 4 Valuation (comparables, DCF, sensitivity, range) | Done; peers are user-supplied |
+| 4 Valuation (comparables, DCF, sensitivity, range) | Done; peers are user-supplied. Peer multiples give pre-money equity, so enter the pre-issue share count or the fresh-issue proceeds (0 for a pure OFS); with only a post-issue count the per-share value is understated and a warning says so |
 | 5 Agent (tools, orchestration, report generation, PDF) | Done |
 | 6 Historical IPO prediction | Training pipeline, time-ordered evaluation and predictor are implemented; returns `not_trained` (never a number) until `data/ipo_history.csv` has at least 40 priced IPOs and `src/train_listing_model.py` has been run |
 

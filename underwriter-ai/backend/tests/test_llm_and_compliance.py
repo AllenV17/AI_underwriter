@@ -78,3 +78,14 @@ def test_advice_question_detection():
 
 def test_disclaimer_text():
     assert "does not constitute personalized investment advice" in DISCLAIMER
+
+
+def test_advice_detector_false_positives_and_positives():
+    from app.core.compliance import is_advice_request
+
+    for q in ("What does the company apply the net proceeds to?", "Where can investors apply for shares?",
+              "How do I bid in the IPO?", "Who invested in the pre-IPO round?", "Which investors sold shares in the offer?"):
+        assert not is_advice_request(q), q
+    for q in ("Should I subscribe to this IPO?", "Can I apply for this IPO?", "Is this a good IPO to apply?",
+              "Would you recommend investing?", "Is it a good time to invest?", "How should I invest in this offer?"):
+        assert is_advice_request(q), q
