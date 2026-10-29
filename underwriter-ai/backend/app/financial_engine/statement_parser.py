@@ -111,6 +111,33 @@ def _cluster(xs: list[float], gap: float = 22.0) -> list[list[float]]:
     return out
 
 
+def _merge_split_columns(clusters: list[list[float]], row_edges: list[list[float]], max_gap: float = 80.0) -> list[list[float]]:
+    """Join two nearby clusters that never share a row.
+
+    Some statements indent subtotal rows, so one period's right edges form two clusters
+    (line items vs. subtotals) that would otherwise be read as two columns.
+    """
+    def idx(x: float) -> int | None:
+        for i, c in enumerate(clusters):
+            if c[0] - 1 <= x <= c[-1] + 1:
+                return i
+        return None
+
+    together = {(a, b) for edges in row_edges for a in {idx(x) for x in edges} for b in {idx(x) for x in edges}
+                if a is not None and b is not None and a != b}
+    out = [list(c) for c in clusters]
+    i = 0
+    while i < len(out) - 1:
+        a = [k for k, c in enumerate(clusters) if c[0] >= out[i][0] and c[-1] <= out[i][-1]]
+        b = [k for k, c in enumerate(clusters) if c[0] >= out[i + 1][0] and c[-1] <= out[i + 1][-1]]
+        near = (sum(out[i + 1]) / len(out[i + 1]) - sum(out[i]) / len(out[i])) <= max_gap
+        if near and not any((x, y) in together for x in a for y in b):
+            out[i] = sorted(out[i] + out.pop(i + 1))
+        else:
+            i += 1
+    return out
+
+
 _MONTH_RE = re.compile(r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?", re.I)
 
 
@@ -127,9 +154,13 @@ def parse_period(text: str) -> str | None:
         return f"FY{y2 + 2000 if y2 < 100 else y2}"
     mon = _MONTH_RE.search(t)
     yr = re.search(r"\b(20\d{2}|19\d{2})\b", t)
+    # Several dates in one header (stray title words): prefer the year printed right after the day.
+    dated = re.search(_MONTH_RE.pattern + r"\s*\d{1,2}(?:st|nd|rd|th)?\s+(20\d{2}|19\d{2})\b", t, re.I)
+    if dated:
+        mon, yr = _MONTH_RE.search(dated.group(0)), dated
     if yr and mon:
         mnum = MONTHS[mon.group(1).lower()[:3]]
-        y = int(yr.group(1))
+        y = int(yr.group(yr.lastindex or 1))
         return f"FY{y}" if mnum == 3 else f"{mon.group(1)[:3].title()} {y}"
     if yr:
         return f"FY{yr.group(1)}"
@@ -149,6 +180,7 @@ def parse_table(page: "pymupdf.Page", min_col_rows: int = 3) -> tuple[list[str],
         return [], [], ["too few numeric rows"]
 
     clusters = [c for c in _cluster([w[2] for _, _, vals in data for w in vals]) if len(c) >= min_col_rows]
+    clusters = _merge_split_columns(clusters, [[w[2] for w in vals] for _, _, vals in data])
     centers = [sum(c) / len(c) for c in clusters]  # right-edge centres
 
     # The table body starts at the first line carrying most of the columns; stray figures in a
@@ -156,19 +188,23 @@ def parse_table(page: "pymupdf.Page", min_col_rows: int = 3) -> tuple[list[str],
     widest = max(len(vals) for _, _, vals in data)
     body = [ln for ln, _, vals in data if len(vals) >= max(2, int(0.6 * widest))]
     first_data_y = min(ln[0][1] for ln in body) if body else min(ln[0][1] for ln, _, _ in data)
-    header_words = [w for ln, _, _ in parsed for w in ln if w[3] <= first_data_y + 1 and w[1] > first_data_y - 160]
+    header_top = first_data_y - 160
+    header_words = [w for ln, _, _ in parsed for w in ln if w[3] <= first_data_y + 1 and w[1] > header_top]
 
     def col_of(x1: float) -> int | None:
         if not centers:
             return None
-        i = min(range(len(centers)), key=lambda k: abs(centers[k] - x1))
-        return i if abs(centers[i] - x1) <= 30 else None
+        def dist(k: int) -> float:  # distance to the cluster's span (a merged column is wider than a single edge)
+            return max(min(clusters[k]) - x1, x1 - max(clusters[k]), 0.0)
+
+        i = min(range(len(centers)), key=dist)
+        return i if dist(i) <= 30 else None
 
     # Header text per column: words whose right part falls near the column's right edge zone.
     head_txt = []
     for i, cx in enumerate(centers):
-        left = centers[i - 1] + 8 if i > 0 else cx - 110
-        ws = [w for w in header_words if left < (w[0] + w[2]) / 2 <= cx + 12]
+        left = max(clusters[i - 1]) + 8 if i > 0 else min(clusters[i]) - 110
+        ws = [w for w in header_words if left < (w[0] + w[2]) / 2 <= max(clusters[i]) + 12]
         ws.sort(key=lambda w: (round(w[1]), w[0]))
         head_txt.append(" ".join(w[4] for w in ws))
 

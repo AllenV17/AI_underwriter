@@ -1,11 +1,11 @@
-"""Historical IPO listing-price prediction: interface only (Phase 6).
+"""Historical IPO listing-price prediction (Phase 6).
 
-The model will be trained on 100-150 historical mainboard IPOs with a time-aware split
+The model is trained on 100-150 historical mainboard IPOs with a time-aware split
 (train on older listings, test on the most recent) and only pre-listing features
 (ratios, issue size, fresh/OFS mix, issue P/E vs peers, market conditions; subscription
-data only if the model is used after bidding closes). Until a trained, validated model
-artefact exists, `predict` returns status "not_trained" and no number: a prediction is
-never fabricated.
+data only if the model is used after bidding closes). Training lives in `listing_model.py`
+(`src/train_listing_model.py`). Until a trained, validated model artefact exists,
+`predict` returns status "not_trained" and no number: a prediction is never fabricated.
 """
 
 from dataclasses import asdict, dataclass, field
@@ -36,10 +36,10 @@ class ListingPrediction:
 
 
 class ListingPricePredictor:
-    """Loads a trained model from data/models/listing_model.json when one exists."""
+    """Loads a trained model from data/models/listing_model.joblib when one exists."""
 
     def __init__(self, model_path: Path | None = None) -> None:
-        self.model_path = model_path or get_settings().data_dir / "models" / "listing_model.json"
+        self.model_path = model_path or get_settings().data_dir / "models" / "listing_model.joblib"
 
     @property
     def trained(self) -> bool:
@@ -55,4 +55,26 @@ class ListingPricePredictor:
                 message="Listing-price prediction is not available: no model has been trained and validated yet "
                         "(planned: gradient boosting on 100-150 historical IPOs with a time-aware test set).",
                 features_used=features)
-        raise NotImplementedError("Model loading is implemented in Phase 6 once a validated model exists.")
+        import json
+
+        import joblib
+        import pandas as pd
+
+        from app.valuation.listing_model import _features
+
+        art = joblib.load(self.model_path)
+        meta_path = self.model_path.with_suffix(".json")
+        meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {}
+        numeric = {k: v for k, v in features.items() if k != "sector" and v is not None}
+        if not numeric:
+            return ListingPrediction(status="insufficient_inputs", message="No numeric pre-listing features were supplied.",
+                                     features_used=features)
+        x = _features(pd.DataFrame([features]), art["columns"])
+        gain = float(art["model"].predict(x)[0])
+        half = float(meta.get("interval_halfwidth", 0.0))
+        rng = (issue_price * (1 + gain - half), issue_price * (1 + gain + half)) if issue_price else None
+        test = meta.get("metrics", {}).get(meta.get("chosen", ""), {})
+        msg = (f"Model estimate of the listing-day return: {gain:+.1%} (+/- {half:.1%}, the validation mean absolute error). "
+               f"Held-out test: MAE {test.get('mae', float('nan')):.1%}, direction accuracy {test.get('direction_accuracy', float('nan')):.0%}.")
+        return ListingPrediction(status="ok", message=msg, predicted_listing_gain=gain, price_range=rng,
+                                 model_version=f"{meta.get('chosen')}@{meta.get('trained_on_through')}", features_used=features)

@@ -15,7 +15,7 @@ from app.models.db import ChatMessage, Document, Report, get_session, session_fa
 from app.schemas.api import (ChatRequest, ChatResponse, ComparableRequest, DCFRequest, DocumentOut, FinancialsResponse,
                              HealthResponse, RatiosResponse, ReportRequest, ReportResponse, SectionOut)
 from app.services.document_service import create_document, process_document
-from app.services.financial_extraction_service import load_financials
+from app.services.financial_extraction_service import load_financials, load_peers
 from app.services.ratio_service import FinancialsNotAvailableError, compute_ratios
 from app.services.report_service import ReportService, render_pdf
 from app.services.valuation_service import comparable_valuation, dcf_defaults, dcf_valuation
@@ -133,6 +133,16 @@ def ratios(document_id: str, price_per_share: float | None = None, shares_outsta
     except FinancialsNotAvailableError as e:
         raise HTTPException(404, str(e)) from e
     return RatiosResponse(ratios=[r.to_dict() for r in res], meta=meta)
+
+
+@router.get("/documents/{document_id}/peers")
+def peers(document_id: str, session: Session = Depends(get_session)) -> dict:
+    """Peer table as printed in the DRHP (a suggestion to verify against the cited page, not an input)."""
+    _doc(session, document_id, ready=True)
+    data = load_peers(document_id)
+    if data is None:
+        raise HTTPException(404, "Peer table not extracted for this document (re-process it).")
+    return data
 
 
 @router.post("/documents/{document_id}/valuation/comparable")

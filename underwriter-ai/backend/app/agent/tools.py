@@ -134,9 +134,15 @@ def analyze_risk_factors(ctx: ToolContext, focus: str | None = None) -> dict:
 def find_comparable_companies(ctx: ToolContext) -> dict:
     """Peers as disclosed in the DRHP's Basis for Offer Price section (no external data is fetched)."""
     out = retrieve_evidence(ctx, "comparison with listed industry peers P/E EPS RoNW NAV peer companies", ["basis_for_offer_price"])
+    from app.services.financial_extraction_service import load_peers
+
     out["tool"] = "find_comparable_companies"
+    saved = load_peers(ctx.document_id) or {}
+    rows = [f"- {p['name']}: P/E {p['pe']}x (DRHP p.{p['source'].split('p.')[1].split(' ')[0]})" for p in saved.get("suggested", []) if p.get("pe")]
     out["computed"] = ("Listed peers are taken only from the DRHP's own peer comparison (see evidence). Peer market "
-                       "multiples must be entered or confirmed by the user before a comparable valuation is run.")
+                       "multiples must be entered or confirmed by the user before a comparable valuation is run."
+                       + (("\nPeer P/E as printed in the DRHP (names may need checking against the page):\n" + "\n".join(rows)) if rows else
+                          ("\n" + saved["note"] if saved.get("note") else "")))
     return out
 
 

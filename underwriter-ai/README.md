@@ -94,6 +94,7 @@ streamlit run frontend/streamlit_app.py
 | GET | `/api/documents/{id}/sections` | Chapter map with page ranges |
 | POST | `/api/documents/{id}/chat` | Agent answer with citations and retrieved evidence |
 | GET | `/api/documents/{id}/financials` | Extracted values, sources, validation checks |
+| GET | `/api/documents/{id}/peers` | Peer table printed in the DRHP's Basis for Offer Price (suggestions to verify) |
 | GET | `/api/documents/{id}/ratios` | Ratios (optional `price_per_share`, `shares_outstanding`) |
 | POST | `/api/documents/{id}/valuation/comparable` | Peer-multiple valuation (user-supplied peers) |
 | GET | `/api/documents/{id}/valuation/dcf/defaults` | DRHP base-year inputs for the DCF |
@@ -119,11 +120,11 @@ Unit and API tests run offline (fake embedder, in-memory Qdrant, mocked LLM) on 
 | 3 Financial analysis (extraction, normalisation, ratios, dashboard) | Done; see limitations |
 | 4 Valuation (comparables, DCF, sensitivity, range) | Done; peers are user-supplied |
 | 5 Agent (tools, orchestration, report generation, PDF) | Done |
-| 6 Historical IPO prediction | Interface only: returns `not_trained`, never a number, until a model is trained |
+| 6 Historical IPO prediction | Training pipeline, time-ordered evaluation and predictor are implemented; returns `not_trained` (never a number) until `data/ipo_history.csv` has at least 40 priced IPOs and `src/train_listing_model.py` has been run |
 
 ## Known limitations
-- Extraction is validated on 10 pilot DRHPs; unusual layouts (e.g. IREDA's two-column cash flow) can leave fields missing. Missing values are reported as missing, never zero.
-- Peer market data and share counts are user inputs; nothing is fetched from exchanges yet.
+- Extraction is validated on 10 pilot DRHPs (see `Evaluation_Results.md`); unusual layouts can still leave fields missing. Missing values are reported as missing, never zero.
+- The DRHP's own peer P/E table is read automatically (`GET /api/documents/{id}/peers`) as a suggestion to verify; wrapped company names can be mis-read and some tables are blank. Peer market data and share counts are otherwise user inputs; nothing is fetched from exchanges.
 - Risk severity is an LLM assessment of the disclosed text; every risk must cite DRHP evidence or it is dropped.
 - BGE-M3 on CPU is slow: about 25 minutes to embed a 361-page DRHP (~1,200 chunks) on a laptop CPU.
   A GPU brings this to about a minute. For quick local trials set `EMBEDDING_MODEL=BAAI/bge-small-en-v1.5`

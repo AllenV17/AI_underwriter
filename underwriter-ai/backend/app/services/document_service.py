@@ -24,7 +24,7 @@ from app.rag.chunker import Chunk, chunk_document
 from app.rag.vector_store import VectorStore
 from app.schemas.document_ir import DocumentIR, PageIR
 from app.services.embedding_service import get_embedder
-from app.services.financial_extraction_service import extract_financials, persist_financials
+from app.services.financial_extraction_service import extract_and_save_peers, extract_financials, persist_financials
 from app.utils.storage import chunks_path, save_ir, upload_path
 
 log = logging.getLogger(__name__)
@@ -127,6 +127,10 @@ def process_document(document_id: str, factory: sessionmaker) -> None:
         progress("extracting tables", 0.45)
         ir.tables += extract_chapter_tables(pdf, ir.pages, s.table_engine)
         save_ir(ir)
+        try:
+            extract_and_save_peers(ir, pdf)
+        except Exception:  # peers are a convenience; never fail processing over them
+            log.exception("Peer table extraction failed for %s", document_id)
         with factory() as session:
             persist_financials(session, document_id, data)
         progress("chunking", 0.55, financials_extracted=bool(data.values), warnings=ir.warnings + data.warnings)
