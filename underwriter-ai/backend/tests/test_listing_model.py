@@ -61,3 +61,20 @@ def test_leakage_rejected(tmp_path):
 def test_untrained_returns_no_number(tmp_path):
     pred = ListingPricePredictor(tmp_path / "none.joblib").predict({"roe": 10})
     assert pred.status == "not_trained" and pred.predicted_listing_gain is None
+
+
+def test_model_that_does_not_beat_baselines_gives_no_number(tmp_path):
+    df = _history()
+    df["listing_price"] = 100 * (1 + np.random.default_rng(1).normal(0, 0.3, len(df)))  # features carry no signal
+    rep = train(_csv(tmp_path, df), tmp_path / "m")
+    assert not rep.validated
+    pred = ListingPricePredictor(tmp_path / "m" / "listing_model.joblib").predict(
+        {"revenue_growth": 30, "pat_margin": 10, "roe": 15, "debt_to_equity": 1, "peer_median_pe": 30, "sector": "a"}, issue_price=100)
+    assert pred.status == "not_validated" and pred.predicted_listing_gain is None and pred.price_range is None
+
+
+def test_sparse_features_are_dropped(tmp_path):
+    df = _history()
+    df.loc[: len(df) * 0.8, "roe"] = None  # present for under half of the training rows
+    rep = train(_csv(tmp_path, df), tmp_path / "m")
+    assert "roe" not in rep.features and "roe" in rep.dropped_features

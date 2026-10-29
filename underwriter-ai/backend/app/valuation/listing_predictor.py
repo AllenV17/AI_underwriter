@@ -23,7 +23,7 @@ FORBIDDEN_FEATURES = ["listing_price", "listing_day_return", "post_listing_volum
 
 @dataclass
 class ListingPrediction:
-    status: str  # "not_trained" | "ok" | "insufficient_inputs"
+    status: str  # "not_trained" | "not_validated" | "ok" | "insufficient_inputs"
     message: str
     predicted_listing_gain: float | None = None
     price_range: tuple[float, float] | None = None
@@ -65,6 +65,14 @@ class ListingPricePredictor:
         art = joblib.load(self.model_path)
         meta_path = self.model_path.with_suffix(".json")
         meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {}
+        if not meta.get("validated", False):
+            wf = meta.get("walk_forward", {})
+            return ListingPrediction(
+                status="not_validated", features_used=features, model_version=f"{meta.get('chosen')}@{meta.get('trained_on_through')}",
+                message="A model was trained but it does not beat the naive baselines (predicting zero or the average listing gain) in "
+                        f"the walk-forward evaluation (model MAE {wf.get(meta.get('chosen'), {}).get('mae', float('nan')):.1%} vs "
+                        f"{min((wf.get(k, {}).get('mae', 9) for k in ('baseline_train_mean', 'baseline_zero_gain')), default=float('nan')):.1%}), "
+                        "so no listing estimate is given.")
         needed = [c for c in art["columns"] if not c.startswith("sector_")]
         have = [c for c in needed if features.get(c) is not None]
         if len(have) < max(1, (len(needed) + 1) // 2):

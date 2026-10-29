@@ -19,6 +19,7 @@ import pandas as pd
 from app.valuation.listing_predictor import ALLOWED_FEATURES, FORBIDDEN_FEATURES
 
 MIN_ROWS = 40
+MIN_COVERAGE = 0.5  # a feature must be present for at least this share of training rows
 NUMERIC = [f for f in ALLOWED_FEATURES if f != "sector"]
 REQUIRED_COLUMNS = ["company", "listing_date", "issue_price", "listing_price"]
 
@@ -39,6 +40,9 @@ class ModelReport:
     interval_halfwidth: float = 0.0  # +/- listing gain used to build the price range (validation MAE)
     trained_on_through: str = ""
     uses_subscription: bool = False
+    dropped_features: list[str] = field(default_factory=list)  # too sparse in the training rows
+    walk_forward: dict = field(default_factory=dict)  # expanding-window evaluation over the whole period
+    validated: bool = False  # chosen model beats both naive baselines in the walk-forward evaluation
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -67,7 +71,9 @@ def time_split(df: pd.DataFrame, test_frac: float = 0.15, val_frac: float = 0.2)
 
 def _features(df: pd.DataFrame, columns: list[str] | None = None) -> pd.DataFrame:
     x = df[[c for c in NUMERIC if c in df.columns]].apply(pd.to_numeric, errors="coerce")
-    if "sector" in df.columns:
+    if "subscription_total_x" in x:  # heavy-tailed (0.7x to 300x+): model it on a log scale
+        x["subscription_total_x"] = np.log1p(x["subscription_total_x"].clip(lower=0))
+    if "sector" in df.columns and df["sector"].notna().mean() >= MIN_COVERAGE:  # a mostly-empty sector adds noise, not signal
         x = pd.concat([x, pd.get_dummies(df["sector"].fillna("unknown"), prefix="sector", dtype=float)], axis=1)
     if columns is not None:
         # Missing numeric features stay NaN so the imputer fills the training median (0 would be a real value);
@@ -99,6 +105,32 @@ def _models():
     }
 
 
+def walk_forward(df: pd.DataFrame, cols: list[str], folds: int = 5, min_train: int = 50) -> dict:
+    """Expanding-window evaluation: train on everything before each block, predict the block, pool the errors.
+
+    A single newest-rows test set is noisy at ~130 IPOs (and one regime can dominate it); this pools five
+    consecutive out-of-time blocks. Returns model -> {mae, direction_accuracy, n}.
+    """
+    n = len(df)
+    start = max(min_train, n // 2)
+    edges = np.linspace(start, n, folds + 1).round().astype(int)
+    errs: dict[str, list[float]] = {}
+    hits: dict[str, list[bool]] = {}
+    for a, b in zip(edges[:-1], edges[1:]):
+        if b <= a:
+            continue
+        tr, te = df.iloc[:a], df.iloc[a:b]
+        xtr, xte, ytr, yte = _features(tr, cols), _features(te, cols), tr["listing_gain"].to_numpy(), te["listing_gain"].to_numpy()
+        preds = {"baseline_train_mean": np.full_like(yte, ytr.mean()), "baseline_zero_gain": np.zeros_like(yte)}
+        for name, model in _models().items():
+            model.fit(xtr, ytr)
+            preds[name] = model.predict(xte)
+        for name, pr in preds.items():
+            errs.setdefault(name, []).extend(np.abs(yte - pr))
+            hits.setdefault(name, []).extend((yte > 0) == (pr > 0))
+    return {k: {"mae": float(np.mean(v)), "direction_accuracy": float(np.mean(hits[k])), "n": len(v)} for k, v in errs.items()}
+
+
 def train(df: pd.DataFrame, out_dir: Path, min_rows: int = MIN_ROWS, use_subscription: bool = False) -> ModelReport:
     """Fit, compare on a time-ordered split, refit the winner on train+val and save it.
 
@@ -111,7 +143,12 @@ def train(df: pd.DataFrame, out_dir: Path, min_rows: int = MIN_ROWS, use_subscri
         raise InsufficientDataError(f"{len(df)} IPOs with prices; at least {min_rows} are needed (plan: 100-150). "
                                     "Add rows to data/ipo_history.csv rather than training on too little data.")
     tr, va, te = time_split(df)
-    cols = [c for c in _features(df).columns if use_subscription or c != "subscription_total_x"]
+    cover = _features(tr).notna().mean()
+    cols = [c for c in _features(df).columns if (use_subscription or c != "subscription_total_x") and cover.get(c, 0.0) >= MIN_COVERAGE]
+    if not cols:
+        raise InsufficientDataError("No feature is present for at least half of the training rows; extract features for more IPOs "
+                                    "(pre-listing features need the DRHP of each company) or train with --use-subscription.")
+    dropped = sorted(set(_features(df).columns) - set(cols))
     xtr, xva, xte = (_features(d, cols) for d in (tr, va, te))
     ytr, yva, yte = (d["listing_gain"].to_numpy() for d in (tr, va, te))
     fitted, val_mae = {}, {}
@@ -119,12 +156,13 @@ def train(df: pd.DataFrame, out_dir: Path, min_rows: int = MIN_ROWS, use_subscri
         model.fit(xtr, ytr)
         fitted[name] = model
         val_mae[name] = float(np.mean(np.abs(yva - model.predict(xva))))
-    chosen = min(val_mae, key=val_mae.get)
-    half = val_mae[chosen]
+    wf = walk_forward(df, cols)  # more out-of-time rows than one split: used to pick the model and its interval
+    chosen = min(fitted, key=lambda m: wf[m]["mae"])
+    half = wf[chosen]["mae"]
 
-    metrics = {name: _metrics(yte, m.predict(xte), val_mae[name]) for name, m in fitted.items()}
-    metrics["baseline_train_mean"] = _metrics(yte, np.full_like(yte, ytr.mean()), val_mae[chosen])
-    metrics["baseline_zero_gain"] = _metrics(yte, np.zeros_like(yte), val_mae[chosen])
+    metrics = {name: _metrics(yte, m.predict(xte), wf[name]["mae"]) for name, m in fitted.items()}
+    metrics["baseline_train_mean"] = _metrics(yte, np.full_like(yte, ytr.mean()), wf[chosen]["mae"])
+    metrics["baseline_zero_gain"] = _metrics(yte, np.zeros_like(yte), wf[chosen]["mae"])
 
     final = _models()[chosen]
     trva = pd.concat([tr, va])
@@ -132,7 +170,13 @@ def train(df: pd.DataFrame, out_dir: Path, min_rows: int = MIN_ROWS, use_subscri
     out_dir.mkdir(parents=True, exist_ok=True)
     report = ModelReport(len(df), len(tr), len(va), len(te), cols, chosen, metrics, half,
                          str(df["listing_date"].max().date()))
+    report.walk_forward = wf
+    base_wf = min(wf["baseline_train_mean"]["mae"], wf["baseline_zero_gain"]["mae"])
+    base_test = min(metrics["baseline_train_mean"]["mae"], metrics["baseline_zero_gain"]["mae"])
+    # Both the pooled walk-forward blocks and the newest held-out IPOs must beat the naive baselines.
+    report.validated = wf[chosen]["mae"] < base_wf and metrics[chosen]["mae"] < base_test
     report.uses_subscription = use_subscription
+    report.dropped_features = dropped
     joblib.dump({"model": final, "columns": cols}, out_dir / "listing_model.joblib")
     (out_dir / "listing_model.json").write_text(json.dumps(report.to_dict(), indent=1), encoding="utf-8")
     return report

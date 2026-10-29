@@ -27,6 +27,20 @@ Weakest chapters: promoters (hit@5 70%), MD&A (50%). Dense retrieval (BGE-M3), r
 
 On the 10 pilots the extractor returns P/E figures for DOMS, Mankind, Bajaj Housing, JSW Infrastructure and Tata Technologies. Honasa and Unicommerce state there are no comparable listed peers. Hyundai, IREDA and Premier Energies yield none (the table is blank, left as [●], or uses a layout the parser does not read). Wrapped company names are sometimes mis-assembled, so results are shown as suggestions to verify against the cited page.
 
-## Listing-return model
+## Historical IPO table and listing-return model
 
-Not trained, and no accuracy is claimed. `data/ipo_history.csv` has 10 pilot IPOs, 7 with a usable listing price, and the trainer refuses to run below 40. The pipeline (time-ordered split, ridge vs gradient boosting vs two naive baselines, MAE, direction accuracy, range hit rate) is tested on synthetic data only. Building the 100–150 row history is still open.
+`data/ipo_history.csv` has **129 mainboard IPOs** listed 2021-09-24 to 2025-12-30 (`data/ipo_outcomes.csv` has the sourced outcome columns). Rows come from Trendlyne's screener (25 latest listings per year for 2021 to 2025; the site's other pages are not reachable without scripting its JavaScript) plus the pilot rows in `data/manifest.csv`. Each row has issue price, first-trade (listing) price and total subscription. Every row that carries a source gain figure matches listing/issue − 1 to 0.2 points (125 of 125), which rules out copy errors in the prices; subscription is not independently checked. The sample is the end of each year, not a random draw, so it is not representative of all IPOs.
+
+Pre-listing features (revenue growth, margins, ROE, leverage, peer P/E) need each company's DRHP and exist only for the 8 pilots, so **the pre-bidding model cannot be trained yet** (the trainer refuses: no feature has half coverage). A **post-bidding model** that uses only (log) subscription can be trained (`python src/train_listing_model.py --use-subscription`):
+
+| Evaluation | Model | MAE of listing gain | Direction accuracy |
+|---|---|---|---|
+| Walk-forward, 5 blocks, 65 IPOs | Ridge on log subscription | 22.4% | 75% |
+| | Gradient boosting | 24.9% | 72% |
+| | Predict average gain | 28.1% | 71% |
+| | Predict zero gain | 26.8% | 29% |
+| Newest 19 IPOs held out | Ridge | 22.8% | 74% |
+| | Predict average gain | 19.8% | 63% |
+| | Predict zero gain | 13.5% | 37% |
+
+Subscription carries real signal across the whole period (it beats both baselines in the walk-forward blocks, mostly on direction), but on the newest 19 listings (late 2025, mostly muted) it loses on error to both naive baselines. The code therefore marks the model **not validated** and the predictor returns no number. The stored interval (±22.4 points) is too wide to be useful. Next steps: extract features for the other ~120 companies from their DRHPs, add a market-conditions feature, and re-run.

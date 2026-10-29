@@ -1,0 +1,127 @@
+# Raw rows copied from https://trendlyne.com/ipo/screener/year-YYYY/mainline/ (first page, 25 latest listings per year), fetched 2026-10-29.
+# company,listing_date,issue_price,listing_open_price,listing_gain_pct,subscription_x
+Elin Electronics,30 Dec `22,247,244.0,-1.2%,3.1x
+KFIN Technologies,29 Dec `22,366,367.0,+0.3%,2.6x
+Abans Holdings,23 Dec `22,270,273.0,+1.1%,1.1x
+Landmark Cars,23 Dec `22,506,471.0,-6.9%,3.1x
+Sula Vineyards,22 Dec `22,357,361.0,+1.1%,2.3x
+Uniparts,12 Dec `22,577,575.0,-0.3%,25.3x
+Dharmaj Crop Guard,08 Dec `22,237,266.1,+12.3%,35.5x
+Keystone Realtors,24 Nov `22,541,555.0,+2.6%,2.0x
+Inox Green Energy,23 Nov `22,65,60.0,-7.7%,1.6x
+Kaynes Technology,22 Nov `22,587,778.0,+32.5%,34.1x
+Five-Star Business Finance,21 Nov `22,474,468.8,-1.1%,0.7x
+Archean Chemical,21 Nov `22,407,450.0,+10.6%,32.2x
+Global Health,16 Nov `22,336,401.0,+19.4%,9.6x
+Bikaji Foods,16 Nov `22,300,322.8,+7.6%,26.7x
+Fusion Micro Finance,15 Nov `22,368,359.5,-2.3%,3.0x
+DCX Systems,11 Nov `22,207,287.0,+38.6%,69.8x
+Tracxn Technologies,20 Oct `22,80,84.5,+5.6%,2.0x
+Electronics Mart,17 Oct `22,59,90.0,+52.5%,71.9x
+Vedant Asset,13 Oct `22,40,71.7,+79.1%,48.6x
+Mafia Trends,06 Oct `22,28,32.6,+16.6%,4.9x
+Harsha Engineers,26 Sep `22,330,450.0,+36.4%,74.7x
+Tamilnad Mercantile Bank,15 Sep `22,525,495.0,-5.7%,2.9x
+Dreamfolks Services,06 Sep `22,326,508.7,+56.0%,56.7x
+Syrma SGS Technology,26 Aug `22,220,260.0,+18.2%,32.6x
+Aether Industries,03 Jun `22,642,704.0,+9.7%,6.3x
+Innova Captab,29 Dec `23,448,452.1,+0.9%,55.3x
+Azad Engineering,28 Dec `23,524,720.0,+37.4%,80.7x
+Happy Forgings,27 Dec `23,850,1000.0,+17.6%,82.0x
+Credo Brands,27 Dec `23,280,282.4,+0.8%,51.9x
+RBZ Jewellers,27 Dec `23,100,100.0,0.0%,16.9x
+Suraj Estate,26 Dec `23,360,340.0,-5.6%,15.7x
+Muthoot Microfin,26 Dec `23,291,275.3,-5.4%,11.5x
+Motisons Jewellers,26 Dec `23,55,109.0,+98.2%,159.6x
+Inox,21 Dec `23,660,949.6,+43.9%,61.3x
+DOMS Industries,20 Dec `23,790,1400.0,+77.2%,93.5x
+India Shelter Finance,20 Dec `23,493,620.0,+25.8%,36.7x
+Flair Writing,01 Dec `23,304,501.0,+64.8%,46.7x
+Fedbank Financial,30 Nov `23,140,138.0,-1.4%,2.2x
+Tata Technologies,30 Nov `23,500,1200.0,+140.0%,69.4x
+Gandhar Oil Refinery,30 Nov `23,169,298.0,+76.3%,64.1x
+IREDA,29 Nov `23,32,50.0,+56.3%,38.8x
+ASK Automotive,15 Nov `23,282,303.3,+7.5%,51.1x
+Protean eGov Tech,13 Nov `23,792,792.0,0.0%,23.9x
+ESAF Small Finance,10 Nov `23,60,71.0,+18.3%,73.2x
+Honasa Consumer,07 Nov `23,324,330.0,+1.9%,7.6x
+Cello World,06 Nov `23,648,829.0,+27.9%,38.9x
+Blue Jet Healthcare,01 Nov `23,346,380.0,+9.8%,8.0x
+IRM Energy,26 Oct `23,505,477.3,-5.5%,27.1x
+Plaza Wires,12 Oct `23,54,76.0,+40.7%,161.0x
+Valiant Laboratories,06 Oct `23,140,162.2,+15.8%,29.8x
+Unimech Aerospace,31 Dec '24,785,1460.0,+86.0%,175.3
+Ventive Hospitality,30 Dec '24,643,716.0,+11.3%,9.8
+Carraro India,30 Dec '24,704,651.0,-7.5%,1.1
+Senores Pharmaceuticals,30 Dec '24,391,600.0,+53.5%,93.4
+Dam Capital Advisors,27 Dec '24,283,393.0,+38.9%,82.1
+Mamata Machinery,27 Dec '24,243,600.0,+146.9%,194.9
+Sanathan Textiles,27 Dec '24,321,422.3,+31.6%,35.1
+Transrail Lighting,27 Dec '24,432,590.0,+36.6%,80.8
+Concord Enviro Systems,27 Dec '24,701,826.0,+17.8%,10.7
+International Gemmological Institute India,20 Dec '24,417,510.0,+22.3%,33.8
+Inventurus Knowledge Solutions,19 Dec '24,1329,1900.0,+43.0%,52.7
+Vishal Mega Mart,18 Dec '24,78,104.0,+33.3%,27.3
+Sai Life Sciences,18 Dec '24,549,650.0,+18.4%,10.3
+One MobiKwik Systems,18 Dec '24,279,440.0,+57.7%,119.4
+Suraksha Diagnostic,06 Dec '24,441,438.0,-0.7%,1.3
+Enviro Infra Engineers,29 Nov '24,148,220.0,+48.6%,89.9
+NTPC Green Energy,27 Nov '24,108,111.5,+3.2%,2.4
+Zinka Logistics Solutions,22 Nov '24,273,280.9,+2.9%,1.9
+Niva Bupa Health Insurance Company,14 Nov '24,74,78.1,+5.6%,1.8
+Swiggy,13 Nov '24,390,420.0,+7.7%,3.6
+ACME Solar Holdings,13 Nov '24,289,251.0,-13.2%,2.8
+Sagility India,12 Nov '24,30,31.1,+3.5%,3.2
+Afcons Infrastructure,04 Nov '24,463,426.0,-8.0%,2.6
+Godavari Biorefineries,30 Oct '24,352,308.0,-12.5%,1.8
+Deepak Builders & Engineers India,28 Oct '24,203,200.0,-1.5%,41.5
+Gujarat Kidney and Super,30 Dec '25,114,120.0,+5.3,5.2
+KSH International,23 Dec '25,384,370.0,-3.6,0.8
+ICICI Prudential Asset,19 Dec '25,2165,2600.0,+20.1,39.2
+Nephrocare Health Services,17 Dec '25,460,490.0,+6.5,14.0
+Park Medi World,17 Dec '25,162,158.8,-2.0,8.1
+Wakefit Innovations,15 Dec '25,195,195.0,0.0,2.5
+Corona Remedies,15 Dec '25,1062,1470.0,+38.4,137.0
+Meesho,10 Dec '25,111,162.5,+46.4,79.0
+Aequs,10 Dec '25,124,140.0,+12.9,101.6
+Vidya Wires,10 Dec '25,52,52.0,0.0,26.6
+Sudeep Pharma,28 Nov '25,593,730.0,+23.1,93.7
+Excelsoft Technologies,26 Nov '25,120,135.0,+12.5,43.2
+Capillary Technologies India,21 Nov '25,577,571.9,-0.9,53.0
+Fujiyama Power Systems,20 Nov '25,228,220.0,-3.5,2.1
+Tenneco Clean Air India,19 Nov '25,397,505.0,+27.2,58.8
+Physicswallah,18 Nov '25,109,145.0,+33.0,1.8
+EMMVEE Photovoltaic Power,18 Nov '25,217,217.0,0.0,1.0
+Pine Labs,14 Nov '25,221,242.0,+9.5,2.5
+Billionbrains Garage Ventures (Groww),12 Nov '25,100,112.0,+12.0,17.6
+Lenskart Solutions,10 Nov '25,402,395.0,-1.7,28.3
+Studds Accessories,07 Nov '25,585,565.0,-3.4,73.3
+Orkla India,06 Nov '25,730,750.1,+2.8,48.7
+Midwest,24 Oct '25,1065,1165.0,+9.4,87.9
+Canara HSBC Life Insurance,17 Oct '25,106,106.0,0.0,2.3
+Anantam Highways InvIT,16 Oct '25,100,103.0,+3.0,5.6
+CMS Info Systems,31 Dec `21,216,242.9,+12.5%,1.9
+Supriya Lifescience,28 Dec `21,274,425.0,+55.1%,71.5
+HP Adhesives,27 Dec `21,274,319.0,+16.4%,21.0
+Data Patterns,24 Dec `21,585,864.0,+47.7%,119.6
+Medplus Health,23 Dec `21,796,1040.0,+30.6%,52.6
+Metro Brands,22 Dec `21,500,436.0,-12.8%,3.6
+C.E. Info Systems,21 Dec `21,1033,1581.0,+53.0%,154.7
+Shriram Properties,20 Dec `21,118,94.0,-20.3%,4.6
+RateGain Travel,17 Dec `21,425,364.8,-14.2%,17.4
+Anand Rathi Wealth,14 Dec `21,550,584.5,+6.3%,9.8
+Tega Industries,13 Dec `21,453,753.0,+66.2%,219.0
+Star Health,10 Dec `21,900,903.0,+0.3%,0.8
+Go Fashion,30 Nov `21,690,1310.0,+89.9%,135.5
+Tarsons Products,26 Nov `21,662,700.0,+5.7%,77.5
+Latent View Analytics,23 Nov `21,197,530.0,+169.0%,326.5
+One97 Communications,18 Nov `21,2150,1955.0,-9.1%,1.9
+Sapphire Foods,18 Nov `21,1180,1311.0,+11.1%,6.6
+PB Fintech,15 Nov `21,980,1444.0,+47.4%,16.6
+SJS Enterprises,15 Nov `21,542,514.0,-5.2%,1.6
+Sigachi Industries,15 Nov `21,163,575.0,+252.8%,101.9
+Fino Payments Bank,12 Nov `21,577,548.0,-5.0%,2.0
+FSN E-Commerce,10 Nov `21,1125,2001.0,+77.9%,81.8
+Aditya Birla Sun Life AMC,11 Oct `21,712,697.5,-2.0%,5.3
+Paras Defence,01 Oct `21,175,475.0,+171.4%,304.3
+Sansera Engineering,24 Sep `21,744,845.0,+13.6%,11.5
