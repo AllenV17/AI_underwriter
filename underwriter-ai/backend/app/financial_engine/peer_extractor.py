@@ -29,7 +29,9 @@ COLUMNS: list[tuple[str, str]] = [
 _NAME_WORDS = re.compile(r"[A-Za-z]{3,}")
 _TAIL = re.compile(r"^(limited|ltd\.?|\(\d\))", re.I)
 _HEADER_HINT = re.compile(r"name of the (company|peer)|listed (industry )?peers?", re.I)
-_LEAK = re.compile(r"\b(eps|p/\s*e|value|operations|income|revenue|basic|diluted|ronw|nav|per|equity|share|owners|company|segment|attributable)\b|[₹%]", re.I)
+# Words that only occur in the table's header. Generic words ("company", "value", "equity") are deliberately
+# excluded: they are part of real peer names such as "Aptus Value Housing Finance".
+_LEAK = re.compile(r"\b(eps|p/\s*e|ronw|nav|basic|diluted|face|operations|revenue|particulars)\b|[₹%]|\(\s*in\b", re.I)
 _LABEL_NOISE = re.compile(r"^(listed (industry )?peers?\**\s*)", re.I)
 _SANE = {"pe": (0.0, 1000.0), "ronw_pct": (-500.0, 200.0), "eps_basic": (-1e4, 1e5), "eps_diluted": (-1e4, 1e5)}
 _NOT_COMPANY = re.compile(r"^(source|notes?|particulars|weighted|average|median|mean|\*|total|our company|the company)", re.I)
@@ -62,7 +64,7 @@ class PeerTable:
             if p.is_subject:
                 continue
             out.append({"name": p.name or f"Peer (see DRHP p.{p.page})", "pe": p.values.get("pe"), "eps": p.values.get("eps_diluted") or p.values.get("eps_basic"),
-                        "revenue": p.revenue_inr, "name_verified": p.name_reliable, "source": f"DRHP p.{p.page} (Basis for Offer Price)"})
+                        "revenue": p.revenue_inr, "page": p.page, "name_verified": p.name_reliable, "source": f"DRHP p.{p.page} (Basis for Offer Price)"})
         return out
 
 
@@ -111,7 +113,7 @@ def _parse_page(page: "pymupdf.Page", number: int, company_hint: str | None) -> 
             consumed.add(i + 1)
         name = " ".join(parts + [label] + tail).strip()
         prev_numeric = i + (1 if tail else 0)
-        if not name or _NOT_COMPANY.match(name) and not company_hint:
+        if not name or _NOT_COMPANY.match(name):
             continue
         name = _LABEL_NOISE.sub("", re.sub(r"\s+", " ", name)).strip()
         row = PeerRow(name=name, page=number, is_subject=bool(_LEAK.search(name)),
@@ -137,8 +139,6 @@ def extract_peers(pdf_path: str, pages: list[int], company_name: str | None = No
     table = PeerTable()
     with pymupdf.open(pdf_path) as doc:
         text = " ".join(doc[n - 1].get_text() for n in pages)
-        if re.search(r"no listed (entities|companies|peers)[^.]{0,120}(comparable|similar)|not (any )?(listed )?(peers|comparable)", text, re.I):
-            table.note = "The DRHP states that there are no comparable listed peers."
         for n in pages:
             rows, unit = _parse_page(doc[n - 1], n, company_name)
             if not rows:
@@ -153,6 +153,8 @@ def extract_peers(pdf_path: str, pages: list[int], company_name: str | None = No
         key = re.sub(r"\W+", "", company_name.lower())[:8]
         for p in table.peers:
             p.is_subject = p.is_subject or (bool(key) and re.sub(r"\W+", "", p.name.lower()).startswith(key))
+    if not table.peers and re.search(r"no listed (entities|companies|peers)[^.]{0,120}(comparable|similar)", text, re.I):
+        table.note = "The DRHP states that there are no comparable listed peers."
     if not table.peers and not table.note:
         table.note = ("No peer comparison table with figures was found (the DRHP may leave it as [●] until the price band "
                       "is fixed). Enter peers manually.")

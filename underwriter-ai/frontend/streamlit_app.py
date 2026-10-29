@@ -246,11 +246,15 @@ elif page == "Valuation":
         st.subheader("Comparable company valuation")
         st.caption("Enter listed peers and their multiples from a reliable, dated source (e.g. the DRHP's Basis for Offer Price "
                    "peer table, or exchange data). Peer figures are never generated automatically.")
+        if st.session_state.get("peers_doc") != doc_id:  # peers belong to one document
+            st.session_state.pop("peers_df", None)
+            st.session_state["peers_doc"] = doc_id
         default = pd.DataFrame([{"name": "", "pe": None, "ev_ebitda": None, "ps": None, "source": ""}] * 3)
         if st.button("Load peer table from the DRHP"):
             try:
                 found = get(f"/api/documents/{doc_id}/peers")
-                rows = [{"name": p["name"], "pe": p.get("pe"), "ev_ebitda": None, "ps": None, "source": p["source"]}
+                rows = [{"name": p["name"], "pe": p.get("pe"), "ev_ebitda": None, "ps": None,
+                         "source": p["source"] + ("" if p.get("name_verified", True) else " - NAME UNVERIFIED, check the page")}
                         for p in found.get("suggested", []) if p.get("pe")]
                 if rows:
                     st.session_state["peers_df"] = pd.DataFrame(rows)

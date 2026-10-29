@@ -86,7 +86,7 @@ class ReportService:
                                for r in risks.get("risks", []) for s in r.get("sources", [])]
         comps = T.calculate_comparable_valuation(ctx, peers, shares) if peers else None
         dcf = T.calculate_dcf(ctx, dcf_assumptions) if dcf_assumptions else None
-        listing = T.predict_listing_price(ctx)
+        listing = T.predict_listing_price(ctx, issue_price)
 
         sections: list[dict] = []
         narratives = {t: self._narrative(t, q, k) for t, (q, k) in NARRATIVE.items()}
@@ -107,8 +107,16 @@ class ReportService:
                          "result": dcf.get("result") if dcf else None, "notice": VALUATION_NOTICE})
         sections.append({"title": "Historical IPO Prediction", "text": listing["computed"]})
         sections.append(self._fundamental_range(comps, dcf, issue_price))
-        sections.append({"title": "Potential Listing-Price Scenario",
-                         "text": f"Not available: no validated listing-price model. {LISTING_NOTICE}"})
+        pred = listing.get("result") or {}
+        if pred.get("status") == "ok" and pred.get("price_range"):
+            lo, hi = pred["price_range"]
+            scenario = (f"Model scenario for the listing price: Rs. {lo:,.2f} to Rs. {hi:,.2f} "
+                        f"({pred['predicted_listing_gain']:+.1%} central estimate). {listing['computed']} {LISTING_NOTICE}")
+        elif pred.get("status") == "ok":
+            scenario = f"{listing['computed']} Enter the issue price to convert this into a price range. {LISTING_NOTICE}"
+        else:
+            scenario = f"Not available: {listing['computed']} {LISTING_NOTICE}"
+        sections.append({"title": "Potential Listing-Price Scenario", "text": scenario})
         sections.append({"title": "Key Assumptions", "kind": "list", "items": self._assumptions(comps, dcf, issue_price, shares)})
         sections.append({"title": "Data Limitations", "kind": "list", "items": self._limitations(ir, fin, risks)})
         sections.append({"title": "Regulatory and Investment Disclaimer", "text": DISCLAIMER})
@@ -120,7 +128,8 @@ class ReportService:
             "company_name": company, "document_id": self.document_id, "doc_type": ir.doc_type if ir else None,
             "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "sections": sections, "disclaimer": DISCLAIMER, "compliance_flags": self.flags,
-            "labels": {"fundamental_valuation": "Model-generated estimate", "listing_price": "Not available (no validated model)"},
+            "labels": {"fundamental_valuation": "Model-generated estimate",
+                   "listing_price": "Model-generated estimate" if pred.get("status") == "ok" else "Not available (no validated model)"},
         }
 
     def _health(self, fin: dict, ratios: dict) -> dict:

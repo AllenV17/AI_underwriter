@@ -70,7 +70,11 @@ def _features(df: pd.DataFrame, columns: list[str] | None = None) -> pd.DataFram
     if "sector" in df.columns:
         x = pd.concat([x, pd.get_dummies(df["sector"].fillna("unknown"), prefix="sector", dtype=float)], axis=1)
     if columns is not None:
-        x = x.reindex(columns=columns, fill_value=0.0)
+        # Missing numeric features stay NaN so the imputer fills the training median (0 would be a real value);
+        # a sector one-hot that is absent simply means "not this sector".
+        x = x.reindex(columns=columns)
+        dummies = [c for c in columns if c.startswith("sector_")]
+        x[dummies] = x[dummies].fillna(0.0)
     return x
 
 

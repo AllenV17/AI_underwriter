@@ -21,31 +21,22 @@ sys.path.insert(0, str(ROOT / "underwriter-ai" / "backend"))
 
 from app.financial_engine.extractor import map_fields  # noqa: E402
 from app.financial_engine.peer_extractor import extract_peers  # noqa: E402
-from app.financial_engine.ratios import RatioEngine  # noqa: E402
 from app.financial_engine.statement_parser import locate_and_parse  # noqa: E402
 from app.ingestion.section_mapper import map_sections  # noqa: E402
+from app.valuation.listing_features import features_from_financials, median_peer_pe  # noqa: E402
 
 MANUAL = ["issue_size_inr", "fresh_issue_share", "nifty_return_30d"]
 
 
-def features_for(pdf: Path) -> dict:
+def features_for(pdf: Path, company: str) -> dict:
     texts = [p.get_text() for p in pymupdf.open(pdf)]
     chapters, *_ = map_sections(texts)
     fin = sorted([c for c in chapters if c.key == "restated_financials"], key=lambda c: c.pdf_start - c.pdf_end)
     pages = [n for c in fin for n in range(c.pdf_start, c.pdf_end + 1)]
-    data = map_fields(locate_and_parse(str(pdf), pages, len(texts)))
-    fys = sorted([p for p in data.periods if p.startswith("FY")], key=lambda p: int(p[2:]), reverse=True)
-    out: dict = {}
-    if fys:
-        res = {r.name: r.value for r in RatioEngine(data).compute() if r.period == fys[0] and r.available}
-        out.update(pat_margin=res.get("Net Profit Margin"), roe=res.get("Return on Equity"), debt_to_equity=res.get("Debt-to-Equity"))
-        if len(fys) > 1:
-            a, b = data.inr("revenue_from_operations", fys[0]), data.inr("revenue_from_operations", fys[1])
-            out["revenue_growth"] = (a / b - 1) * 100 if a and b else None
-        out["feature_period"] = fys[0]
+    out = features_from_financials(map_fields(locate_and_parse(str(pdf), pages, len(texts))))
     basis = [n for c in chapters if c.key == "basis_for_offer_price" for n in range(c.pdf_start, c.pdf_end + 1)]
-    pes = sorted(p.values["pe"] for p in extract_peers(str(pdf), basis).peers if not p.is_subject and p.values.get("pe"))
-    out["peer_median_pe"] = pes[len(pes) // 2] if pes else None
+    # The issuer's name is passed so its own row is excluded, as in the application.
+    out["peer_median_pe"] = median_peer_pe(extract_peers(str(pdf), basis, company).as_peer_companies())
     return out
 
 
@@ -61,7 +52,7 @@ def main() -> None:
         pdf = ROOT / "data" / r["file"]
         row = {"company": r["company"], "sector": r["sector"], "listing_date": r["listing_date"], "issue_price": r["issue_price"],
                "listing_price": r["listing_open"], "subscription_total_x": r["subscription_x"]}
-        row.update(features_for(pdf) if pdf.exists() else {})
+        row.update(features_for(pdf, r["company"]) if pdf.exists() else {})
         for m in MANUAL:
             row[m] = old.at[r["company"], m] if old is not None and r["company"] in old.index and m in old.columns else None
         rows.append(row)

@@ -138,7 +138,8 @@ def find_comparable_companies(ctx: ToolContext) -> dict:
 
     out["tool"] = "find_comparable_companies"
     saved = load_peers(ctx.document_id) or {}
-    rows = [f"- {p['name']}: P/E {p['pe']}x (DRHP p.{p['source'].split('p.')[1].split(' ')[0]})" for p in saved.get("suggested", []) if p.get("pe")]
+    rows = [f"- {p['name'] if p.get('name_verified', True) else '(name may be mis-read) ' + p['name']}: P/E {p['pe']}x (DRHP p.{p['page']})"
+            for p in saved.get("suggested", []) if p.get("pe")]
     out["computed"] = ("Listed peers are taken only from the DRHP's own peer comparison (see evidence). Peer market "
                        "multiples must be entered or confirmed by the user before a comparable valuation is run."
                        + (("\nPeer P/E as printed in the DRHP (names may need checking against the page):\n" + "\n".join(rows)) if rows else
@@ -170,10 +171,22 @@ def calculate_dcf(ctx: ToolContext, assumptions: dict | None = None) -> dict:
             "computed": f"DCF equity value: {res['equity_value']:,.0f} INR; price per share: {res['price_per_share']}. {res['notice']}"}
 
 
-def predict_listing_price(ctx: ToolContext) -> dict:
+def predict_listing_price(ctx: ToolContext, issue_price: float | None = None) -> dict:
+    """Listing-return estimate from the document's own pre-listing features (needs a trained model)."""
+    from app.services.financial_extraction_service import load_financials, load_peers
+    from app.valuation.listing_features import features_from_financials, median_peer_pe
     from app.valuation.listing_predictor import ListingPricePredictor
 
-    pred = ListingPricePredictor().predict({})
+    features: dict = {}
+    data = load_financials(ctx.document_id)
+    if data is not None:
+        features.update(features_from_financials(data))
+    peers = [p for p in (load_peers(ctx.document_id) or {}).get("suggested", []) if p.get("name_verified", True) or p.get("pe")]
+    pe = median_peer_pe(peers)
+    if pe is not None:
+        features["peer_median_pe"] = pe
+    features.pop("feature_period", None)
+    pred = ListingPricePredictor().predict(features, issue_price)
     return {"tool": "predict_listing_price", "available": pred.status == "ok", "computed": pred.message, "result": pred.to_dict()}
 
 

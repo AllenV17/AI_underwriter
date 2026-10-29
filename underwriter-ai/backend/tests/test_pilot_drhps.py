@@ -84,3 +84,12 @@ def test_peer_pe_doms_and_none_cases():
     assert 25.9 in [p.values["pe"] for p in _peers("DOMSIndustries_DRHP.pdf").peers]
     t = _peers("HonasaConsumer_DRHP.pdf")
     assert not t.peers and "no comparable" in t.note
+
+
+def test_peer_filters_and_notes():
+    # A real peer whose name contains generic words must not be mistaken for the issuer (Aptus Value Housing).
+    t = _peers("BajajHousingFinance_DRHP.pdf")
+    names = [p.name for p in t.peers if not p.is_subject]
+    assert any("Aptus Value" in n for n in names)
+    # The note about missing peers is only attached when no table was parsed.
+    assert t.peers and "no comparable" not in t.note

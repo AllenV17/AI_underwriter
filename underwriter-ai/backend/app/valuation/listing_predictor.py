@@ -65,10 +65,13 @@ class ListingPricePredictor:
         art = joblib.load(self.model_path)
         meta_path = self.model_path.with_suffix(".json")
         meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {}
-        numeric = {k: v for k, v in features.items() if k != "sector" and v is not None}
-        if not numeric:
-            return ListingPrediction(status="insufficient_inputs", message="No numeric pre-listing features were supplied.",
-                                     features_used=features)
+        needed = [c for c in art["columns"] if not c.startswith("sector_")]
+        have = [c for c in needed if features.get(c) is not None]
+        if len(have) < max(1, (len(needed) + 1) // 2):
+            return ListingPrediction(
+                status="insufficient_inputs", features_used=features,
+                message=f"Only {len(have)} of the model's {len(needed)} numeric features are available "
+                        f"(missing: {', '.join(c for c in needed if c not in have)}); at least half are required.")
         x = _features(pd.DataFrame([features]), art["columns"])
         gain = float(art["model"].predict(x)[0])
         half = float(meta.get("interval_halfwidth", 0.0))

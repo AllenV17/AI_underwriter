@@ -111,11 +111,15 @@ def _cluster(xs: list[float], gap: float = 22.0) -> list[list[float]]:
     return out
 
 
-def _merge_split_columns(clusters: list[list[float]], row_edges: list[list[float]], max_gap: float = 80.0) -> list[list[float]]:
-    """Join two nearby clusters that never share a row.
+def _merge_split_columns(clusters: list[list[float]], row_edges: list[list[float]], max_gap: float = 60.0,
+                         max_ratio: float = 0.5) -> list[list[float]]:
+    """Fold a sparse cluster into its nearest neighbour when the two never share a row.
 
-    Some statements indent subtotal rows, so one period's right edges form two clusters
-    (line items vs. subtotals) that would otherwise be read as two columns.
+    Some statements indent subtotal rows, so one period's right edges form two clusters:
+    the many line items and the few subtotals. Only a cluster with at most `max_ratio` of its
+    neighbour's rows, within `max_gap` points of it, and that never appears on the same row
+    as it, is treated as such a subtotal column. Two genuine period columns hold similar numbers
+    of rows and are left alone, even if a sparse statement never fills both on one row.
     """
     def idx(x: float) -> int | None:
         for i, c in enumerate(clusters):
@@ -123,19 +127,34 @@ def _merge_split_columns(clusters: list[list[float]], row_edges: list[list[float
                 return i
         return None
 
-    together = {(a, b) for edges in row_edges for a in {idx(x) for x in edges} for b in {idx(x) for x in edges}
-                if a is not None and b is not None and a != b}
-    out = [list(c) for c in clusters]
-    i = 0
-    while i < len(out) - 1:
-        a = [k for k, c in enumerate(clusters) if c[0] >= out[i][0] and c[-1] <= out[i][-1]]
-        b = [k for k, c in enumerate(clusters) if c[0] >= out[i + 1][0] and c[-1] <= out[i + 1][-1]]
-        near = (sum(out[i + 1]) / len(out[i + 1]) - sum(out[i]) / len(out[i])) <= max_gap
-        if near and not any((x, y) in together for x in a for y in b):
-            out[i] = sorted(out[i] + out.pop(i + 1))
-        else:
-            i += 1
-    return out
+    member = [[idx(x) for x in edges] for edges in row_edges]
+    groups: list[set[int]] = [{i} for i in range(len(clusters))]  # original cluster ids per current column
+
+    def rows_of(g: set[int]) -> set[int]:
+        return {r for r, m in enumerate(member) if g & {k for k in m if k is not None}}
+
+    def mean(g: set[int]) -> float:
+        xs = [x for i in g for x in clusters[i]]
+        return sum(xs) / len(xs)
+
+    while True:
+        best = None
+        for i, g in enumerate(groups):
+            size = len(rows_of(g))
+            for j in (i - 1, i + 1):
+                if not 0 <= j < len(groups):
+                    continue
+                other = groups[j]
+                gap = abs(mean(g) - mean(other))
+                if size <= max_ratio * len(rows_of(other)) and gap <= max_gap and not (rows_of(g) & rows_of(other)):
+                    if best is None or gap < best[0]:
+                        best = (gap, i, j)
+        if best is None:
+            break
+        _, i, j = best
+        groups[j] |= groups[i]
+        del groups[i]
+    return [sorted(x for i in sorted(g) for x in clusters[i]) for g in groups]
 
 
 _MONTH_RE = re.compile(r"(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?", re.I)

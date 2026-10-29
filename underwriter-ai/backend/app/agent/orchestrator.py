@@ -101,6 +101,8 @@ class UnderwriterAgent:
                 args = {"peers": peers, "shares": shares}
             elif tool == "calculate_dcf":
                 args = {"assumptions": dcf_assumptions}
+            elif tool == "predict_listing_price":
+                args = {"issue_price": price_per_share}
             elif tool == "calculate_ratios":
                 args = {"price_per_share": price_per_share, "shares": shares}
             try:
